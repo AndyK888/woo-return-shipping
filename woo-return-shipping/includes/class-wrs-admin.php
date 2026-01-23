@@ -21,7 +21,9 @@ class WRS_Admin {
 	 */
 	public static function init(): void {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ) );
-		add_action( 'woocommerce_admin_order_items_after_refunds', array( __CLASS__, 'render_fee_input' ) );
+		
+		// Add our fields via JavaScript since PHP hooks don't work reliably in refund modal.
+		add_action( 'admin_footer', array( __CLASS__, 'output_refund_fields_template' ) );
 	}
 
 	/**
@@ -30,10 +32,25 @@ class WRS_Admin {
 	 * @param string $hook_suffix Current admin page hook suffix.
 	 */
 	public static function enqueue_scripts( string $hook_suffix ): void {
+		// Check if we're on an order page.
 		$screen = get_current_screen();
+		
+		// Support both classic orders and HPOS.
+		$valid_screens = array( 
+			'shop_order', 
+			'woocommerce_page_wc-orders',
+			'edit-shop_order',
+		);
+		
+		if ( ! $screen ) {
+			return;
+		}
 
-		// Only load on order edit pages.
-		if ( ! $screen || ! in_array( $screen->id, array( 'shop_order', 'woocommerce_page_wc-orders' ), true ) ) {
+		// Check screen ID or post type.
+		$is_order_screen = in_array( $screen->id, $valid_screens, true ) 
+			|| ( 'post' === $screen->base && 'shop_order' === $screen->post_type );
+
+		if ( ! $is_order_screen ) {
 			return;
 		}
 
@@ -41,14 +58,14 @@ class WRS_Admin {
 			'wrs-admin',
 			WRS_PLUGIN_URL . 'assets/css/admin.css',
 			array(),
-			WRS_VERSION . '.' . time()
+			'1.1.0'
 		);
 
 		wp_enqueue_script(
 			'wrs-admin-refund',
 			WRS_PLUGIN_URL . 'assets/js/admin-refund.js',
-			array( 'jquery', 'accounting' ),
-			WRS_VERSION . '.' . time(),
+			array( 'jquery' ),
+			'1.1.0',
 			true
 		);
 
@@ -56,85 +73,63 @@ class WRS_Admin {
 			'wrs-admin-refund',
 			'wrsAdmin',
 			array(
-				'defaultFee'      => floatval( get_option( 'wrs_default_fee', '10.00' ) ),
-				'feeLabel'        => get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
-				'showReasonField' => 'yes' === get_option( 'wrs_show_reason_field', 'no' ),
+				'defaultFee' => floatval( get_option( 'wrs_default_fee', '10.00' ) ),
+				'feeLabel'   => get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
 			)
 		);
 	}
 
 	/**
-	 * Render the return fee input field in refund area.
-	 *
-	 * This hook fires in the order items meta box.
-	 *
-	 * @param int $order_id Order ID.
+	 * Output the refund fields template in admin footer.
+	 * This ensures the HTML is available for JavaScript to move into place.
 	 */
-	public static function render_fee_input( int $order_id ): void {
-		$default_fee       = floatval( get_option( 'wrs_default_fee', '10.00' ) );
-		$show_reason_field = 'yes' === get_option( 'wrs_show_reason_field', 'no' );
+	public static function output_refund_fields_template(): void {
+		$screen = get_current_screen();
+		
+		$valid_screens = array( 
+			'shop_order', 
+			'woocommerce_page_wc-orders',
+		);
+		
+		if ( ! $screen ) {
+			return;
+		}
+
+		$is_order_screen = in_array( $screen->id, $valid_screens, true ) 
+			|| ( 'post' === $screen->base && 'shop_order' === $screen->post_type );
+
+		if ( ! $is_order_screen ) {
+			return;
+		}
+
+		$default_fee = floatval( get_option( 'wrs_default_fee', '10.00' ) );
+		$fee_label   = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
 		?>
-		<tr class="wrs-return-shipping-row" style="display: none;">
-			<td class="label">
-				<label for="wrs_return_shipping_fee">
-					<?php esc_html_e( 'Return Shipping Fee', 'woo-return-shipping' ); ?>
-				</label>
-			</td>
-			<td class="total">
-				<input 
-					type="number" 
-					id="wrs_return_shipping_fee" 
-					name="wrs_return_shipping_fee" 
-					class="wc_input_price" 
-					step="0.01" 
-					min="0" 
-					value="<?php echo esc_attr( $default_fee ); ?>"
-					placeholder="0.00"
-				/>
-			</td>
-		</tr>
-		<tr class="wrs-exempt-row" style="display: none;">
-			<td class="label">
-				<label for="wrs_exempt_fee">
-					<?php esc_html_e( 'Exempt from fee', 'woo-return-shipping' ); ?>
-				</label>
-			</td>
-			<td class="total">
-				<input 
-					type="checkbox" 
-					id="wrs_exempt_fee" 
-					name="wrs_exempt_fee" 
-					value="1"
-				/>
-				<span class="woocommerce-help-tip" data-tip="<?php esc_attr_e( 'Check if customer pre-paid for return shipping', 'woo-return-shipping' ); ?>"></span>
-			</td>
-		</tr>
-		<?php if ( $show_reason_field ) : ?>
-		<tr class="wrs-reason-row" style="display: none;">
-			<td class="label">
-				<label for="wrs_fee_reason">
-					<?php esc_html_e( 'Fee Reason', 'woo-return-shipping' ); ?>
-				</label>
-			</td>
-			<td class="total">
-				<input 
-					type="text" 
-					id="wrs_fee_reason" 
-					name="wrs_fee_reason" 
-					class="wrs-reason-input"
-					placeholder="<?php esc_attr_e( 'Optional reason', 'woo-return-shipping' ); ?>"
-				/>
-			</td>
-		</tr>
-		<?php endif; ?>
-		<tr class="wrs-net-refund-row" style="display: none;">
-			<td class="label">
-				<strong><?php esc_html_e( 'Net Refund (after fee)', 'woo-return-shipping' ); ?></strong>
-			</td>
-			<td class="total">
-				<strong id="wrs_net_refund_display">-</strong>
-			</td>
-		</tr>
+		<script type="text/html" id="tmpl-wrs-refund-fields">
+			<div class="wrs-refund-fields" style="margin: 15px 0; padding: 12px 15px; background: #fffbeb; border: 1px solid #f0d866; border-radius: 4px;">
+				<div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+					<label style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #1d2327; cursor: pointer;">
+						<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px; margin: 0;" />
+						<?php echo esc_html( $fee_label ); ?>
+					</label>
+					<div style="display: flex; align-items: center; gap: 5px;">
+						<span>-</span>
+						<input type="number" 
+							id="wrs_return_shipping_fee" 
+							name="wrs_return_shipping_fee" 
+							step="0.01" 
+							min="0" 
+							value="<?php echo esc_attr( number_format( $default_fee, 2, '.', '' ) ); ?>"
+							style="width: 80px; text-align: right; padding: 4px 8px;"
+						/>
+					</div>
+				</div>
+				<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0d48d; display: flex; justify-content: space-between; align-items: center;">
+					<span style="font-weight: 600;">Net Refund:</span>
+					<strong id="wrs_net_refund" style="font-size: 14px; color: #2e7d32;">$0.00</strong>
+				</div>
+			</div>
+		</script>
 		<?php
 	}
 }
