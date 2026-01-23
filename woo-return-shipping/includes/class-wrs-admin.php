@@ -107,13 +107,17 @@ class WRS_Admin {
 		?>
 		<script type="text/html" id="tmpl-wrs-refund-fields">
 			<div class="wrs-refund-fields" style="margin: 15px 0; padding: 12px 15px; background: #fffbeb; border: 1px solid #f0d866; border-radius: 4px;">
-				<div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+				<div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 10px;">
+					<span style="color: #666;">Item Refund Total:</span>
+					<strong id="wrs_original_amount">$0.00</strong>
+				</div>
+				<div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-bottom: 10px; border-bottom: 1px solid #e0d48d;">
 					<label style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #1d2327; cursor: pointer;">
 						<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px; margin: 0;" />
 						<?php echo esc_html( $fee_label ); ?>
 					</label>
 					<div style="display: flex; align-items: center; gap: 5px;">
-						<span>-</span>
+						<span style="color: #c00;">−</span>
 						<input type="number" 
 							id="wrs_return_shipping_fee" 
 							name="wrs_return_shipping_fee" 
@@ -124,9 +128,12 @@ class WRS_Admin {
 						/>
 					</div>
 				</div>
-				<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0d48d; display: flex; justify-content: space-between; align-items: center;">
-					<span style="font-weight: 600;">Net Refund:</span>
-					<strong id="wrs_net_refund" style="font-size: 14px; color: #2e7d32;">$0.00</strong>
+				<div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+					<span style="font-weight: 600;">Net Refund to Customer:</span>
+					<strong id="wrs_net_refund" style="font-size: 16px; color: #2e7d32;">$0.00</strong>
+				</div>
+				<div style="margin-top: 8px; font-size: 11px; color: #666;">
+					This is the amount that will be refunded via the payment gateway.
 				</div>
 			</div>
 		</script>

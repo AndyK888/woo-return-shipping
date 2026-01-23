@@ -2,128 +2,168 @@
  * WooCommerce Return Shipping - Admin Refund Modal Enhancement
  *
  * @package WooReturnShipping
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 (function ($) {
     'use strict';
 
-    console.log('WRS: Script loaded');
+    console.log('WRS: Script loaded v1.2.0');
 
     const WRS = {
         config: window.wrsAdmin || { defaultFee: 10.0, feeLabel: 'Return Shipping' },
         injected: false,
+        originalRefundAmount: 0,
 
         init: function () {
-            console.log('WRS: Initializing');
             $(document).ready(this.setup.bind(this));
         },
 
         setup: function () {
-            console.log('WRS: Document ready');
-
-            // Watch for refund button click.
             $(document).on('click', '.refund-items', this.onRefundStart.bind(this));
             $(document).on('click', '.cancel-action', this.onRefundCancel.bind(this));
-
-            // Also try to inject if refund panel is already open.
             setTimeout(() => this.tryInject(), 500);
         },
 
         onRefundStart: function () {
             console.log('WRS: Refund button clicked');
-            // Wait for WC to show the refund UI.
             setTimeout(() => this.tryInject(), 300);
         },
 
         onRefundCancel: function () {
-            console.log('WRS: Refund cancelled');
             $('.wrs-refund-fields').remove();
             this.injected = false;
         },
 
         tryInject: function () {
-            console.log('WRS: Trying to inject UI');
-
             if (this.injected && $('.wrs-refund-fields').length) {
-                console.log('WRS: Already injected');
                 return;
             }
 
-            // Find the refund amount field - this is our anchor point.
             const $refundAmount = $('#refund_amount');
-
             if (!$refundAmount.length) {
                 console.log('WRS: Refund amount field not found');
                 return;
             }
 
-            console.log('WRS: Found refund amount field');
+            // Store original refund amount for calculations.
+            this.originalRefundAmount = this.parseAmount($refundAmount.val());
 
-            // Get the template HTML.
             const template = $('#tmpl-wrs-refund-fields').html();
-
             if (!template) {
                 console.log('WRS: Template not found');
                 return;
             }
 
-            // Find where to insert - look for the refund actions area.
             const $refundActions = $('.refund-actions');
-
             if ($refundActions.length) {
-                console.log('WRS: Inserting before refund-actions');
                 $refundActions.before(template);
             } else {
-                // Try inserting after the totals table.
-                const $totals = $refundAmount.closest('table');
-                if ($totals.length) {
-                    console.log('WRS: Inserting after totals table');
-                    $totals.after(template);
-                } else {
-                    console.log('WRS: Could not find insertion point');
-                    return;
-                }
+                return;
             }
 
             this.injected = true;
             this.bindEvents();
-            this.updateNetRefund();
+            this.updateAmounts();
             console.log('WRS: UI injected successfully');
         },
 
         bindEvents: function () {
             $(document).off('.wrs');
 
+            // When checkbox changes.
             $(document).on('change.wrs', '#wrs_apply_fee', () => {
                 const checked = $('#wrs_apply_fee').is(':checked');
                 $('#wrs_return_shipping_fee').prop('disabled', !checked);
-                this.updateNetRefund();
+                this.updateAmounts();
             });
 
-            $(document).on('input.wrs change.wrs', '#wrs_return_shipping_fee, #refund_amount', () => {
-                this.updateNetRefund();
+            // When fee amount changes.
+            $(document).on('input.wrs change.wrs', '#wrs_return_shipping_fee', () => {
+                this.updateAmounts();
             });
 
-            // Intercept AJAX.
+            // When WC updates the refund amount (when user changes item qty).
+            $(document).on('keyup.wrs change.wrs', '#refund_amount', (e) => {
+                // Only update original if user manually typed.
+                if (e.originalEvent) {
+                    this.originalRefundAmount = this.parseAmount($('#refund_amount').val());
+                    this.updateAmounts();
+                }
+            });
+
+            // Watch for WC recalculating items.
+            this.watchRefundAmountChanges();
+
             this.interceptAjax();
         },
 
-        updateNetRefund: function () {
-            const refundAmount = this.parseAmount($('#refund_amount').val());
+        /**
+         * Watch for WooCommerce updating the refund amount when items change.
+         */
+        watchRefundAmountChanges: function () {
+            // Use MutationObserver to watch for WC updating the refund_amount.
+            const $refundAmount = document.getElementById('refund_amount');
+            if ($refundAmount && !this.observer) {
+                this.observer = new MutationObserver(() => {
+                    const newAmount = this.parseAmount($('#refund_amount').val());
+                    if (Math.abs(newAmount - this.originalRefundAmount) > 0.01) {
+                        // WC changed the amount, update our original.
+                        this.originalRefundAmount = newAmount + this.getCurrentFee();
+                        this.updateAmounts();
+                    }
+                });
+                this.observer.observe($refundAmount, { attributes: true, attributeFilter: ['value'] });
+            }
+
+            // Also watch for item quantity changes.
+            $(document).on('change.wrs keyup.wrs', '.refund_order_item_qty, .refund_line_total', () => {
+                setTimeout(() => {
+                    // After WC recalculates, grab the new total and add our fee back.
+                    const wcAmount = this.parseAmount($('#refund_amount').val());
+                    this.originalRefundAmount = wcAmount + this.getCurrentFee();
+                    this.updateAmounts();
+                }, 100);
+            });
+        },
+
+        getCurrentFee: function () {
+            const applyFee = $('#wrs_apply_fee').is(':checked');
+            return applyFee ? this.parseAmount($('#wrs_return_shipping_fee').val()) : 0;
+        },
+
+        /**
+         * Update the refund amount field and net display.
+         * This is the key - we modify the actual #refund_amount so gateway gets correct amount.
+         */
+        updateAmounts: function () {
             const applyFee = $('#wrs_apply_fee').is(':checked');
             const feeAmount = applyFee ? this.parseAmount($('#wrs_return_shipping_fee').val()) : 0;
 
-            let netRefund = Math.max(0, refundAmount - feeAmount);
+            // Calculate net refund.
+            let netRefund = Math.max(0, this.originalRefundAmount - feeAmount);
 
-            // Show error if fee exceeds refund.
-            if (feeAmount > refundAmount && refundAmount > 0) {
+            // Validate fee doesn't exceed refund.
+            if (feeAmount > this.originalRefundAmount && this.originalRefundAmount > 0) {
                 $('#wrs_return_shipping_fee').css('border-color', '#d63638');
+                netRefund = 0;
             } else {
                 $('#wrs_return_shipping_fee').css('border-color', '');
             }
 
+            // UPDATE THE ACTUAL REFUND AMOUNT FIELD.
+            // This is what gets sent to the gateway!
+            $('#refund_amount').val(netRefund.toFixed(2));
+
+            // Update our display.
             $('#wrs_net_refund').text(this.formatCurrency(netRefund));
+            $('#wrs_original_amount').text(this.formatCurrency(this.originalRefundAmount));
+
+            console.log('WRS: Updated amounts', {
+                original: this.originalRefundAmount,
+                fee: feeAmount,
+                net: netRefund
+            });
         },
 
         parseAmount: function (value) {
@@ -132,7 +172,6 @@
         },
 
         formatCurrency: function (amount) {
-            // Use WC formatting if available.
             if (window.woocommerce_admin_meta_boxes && window.accounting) {
                 const p = window.woocommerce_admin_meta_boxes;
                 return window.accounting.formatMoney(amount, {
@@ -157,8 +196,9 @@
 
                     settings.data += '&wrs_return_shipping_fee=' + encodeURIComponent(feeAmount);
                     settings.data += '&wrs_apply_fee=' + (applyFee ? '1' : '0');
+                    settings.data += '&wrs_original_amount=' + encodeURIComponent(this.originalRefundAmount);
 
-                    console.log('WRS: Added fee data to AJAX request', { applyFee, feeAmount });
+                    console.log('WRS: AJAX data added', { feeAmount, original: this.originalRefundAmount });
                 }
             });
         },
