@@ -41,14 +41,14 @@ class WRS_Admin {
 			'wrs-admin',
 			WRS_PLUGIN_URL . 'assets/css/admin.css',
 			array(),
-			WRS_VERSION
+			WRS_VERSION . '.' . time()
 		);
 
 		wp_enqueue_script(
 			'wrs-admin-refund',
 			WRS_PLUGIN_URL . 'assets/js/admin-refund.js',
-			array( 'jquery', 'wc-admin-order-meta-boxes' ),
-			WRS_VERSION,
+			array( 'jquery', 'accounting' ),
+			WRS_VERSION . '.' . time(),
 			true
 		);
 
@@ -59,14 +59,6 @@ class WRS_Admin {
 				'defaultFee'      => floatval( get_option( 'wrs_default_fee', '10.00' ) ),
 				'feeLabel'        => get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
 				'showReasonField' => 'yes' === get_option( 'wrs_show_reason_field', 'no' ),
-				'i18n'            => array(
-					'feeLabel'        => __( 'Return Shipping Fee', 'woo-return-shipping' ),
-					'exemptLabel'     => __( 'Exempt from return fee', 'woo-return-shipping' ),
-					'exemptTooltip'   => __( 'Check if customer pre-paid for return shipping', 'woo-return-shipping' ),
-					'reasonLabel'     => __( 'Return Fee Reason', 'woo-return-shipping' ),
-					'reasonPlaceholder' => __( 'Optional reason for fee deduction', 'woo-return-shipping' ),
-					'netRefund'       => __( 'Net Refund (after fee)', 'woo-return-shipping' ),
-				),
 			)
 		);
 	}

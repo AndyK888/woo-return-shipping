@@ -1,302 +1,286 @@
 /**
  * WooCommerce Return Shipping - Admin Refund Modal Enhancement
  *
- * Injects return shipping fee controls into the WooCommerce refund modal
- * and dynamically updates the net refund display.
+ * Injects return shipping fee controls into the WooCommerce refund modal.
+ * The fee is shown as a line with a checkbox - when checked, fee is applied.
  *
  * @package WooReturnShipping
  */
 
 (function ($) {
-	'use strict';
+    'use strict';
 
-	const WRS = {
-		/**
-		 * Configuration from localized script.
-		 */
-		config: window.wrsAdmin || {
-			defaultFee: 10.0,
-			feeLabel: 'Return Shipping',
-			showReasonField: false,
-			i18n: {
-				feeLabel: 'Return Shipping Fee',
-				exemptLabel: 'Exempt from return fee',
-				netRefund: 'Net Refund (after fee)',
-			},
-		},
+    const WRS = {
+        /**
+         * Configuration from localized script.
+         */
+        config: window.wrsAdmin || {
+            defaultFee: 10.0,
+            feeLabel: 'Return Shipping',
+            currencySymbol: '$',
+            currencyPosition: 'left',
+            showReasonField: false,
+        },
 
-		/**
-		 * Cache DOM elements.
-		 */
-		elements: {
-			feeRow: null,
-			exemptRow: null,
-			reasonRow: null,
-			netRefundRow: null,
-			feeInput: null,
-			exemptCheckbox: null,
-			refundAmount: null,
-			netRefundDisplay: null,
-		},
+        /**
+         * Whether the UI has been injected.
+         */
+        injected: false,
 
-		/**
-		 * Initialize the module.
-		 */
-		init: function () {
-			// Wait for WooCommerce order meta boxes to be ready.
-			$(document).ready(this.setup.bind(this));
+        /**
+         * Initialize the module.
+         */
+        init: function () {
+            $(document).ready(this.setup.bind(this));
+        },
 
-			// Re-initialize when refund items are loaded via AJAX.
-			$(document.body).on(
-				'wc_backbone_modal_loaded',
-				this.onModalLoad.bind(this)
-			);
-		},
+        /**
+         * Initial setup - watch for refund button click.
+         */
+        setup: function () {
+            // Watch for the refund items button click
+            $(document).on('click', '.refund-items', this.onRefundStart.bind(this));
+            $(document).on('click', '.cancel-action', this.onRefundCancel.bind(this));
 
-		/**
-		 * Initial setup - cache elements and bind events.
-		 */
-		setup: function () {
-			this.cacheElements();
-			this.bindEvents();
-		},
+            // Also check if refund UI is already visible (page reload)
+            this.checkAndInject();
+        },
 
-		/**
-		 * Cache frequently used DOM elements.
-		 */
-		cacheElements: function () {
-			this.elements.feeRow = $('.wrs-return-shipping-row');
-			this.elements.exemptRow = $('.wrs-exempt-row');
-			this.elements.reasonRow = $('.wrs-reason-row');
-			this.elements.netRefundRow = $('.wrs-net-refund-row');
-			this.elements.feeInput = $('#wrs_return_shipping_fee');
-			this.elements.exemptCheckbox = $('#wrs_exempt_fee');
-			this.elements.netRefundDisplay = $('#wrs_net_refund_display');
-		},
+        /**
+         * Check if refund UI is visible and inject if needed.
+         */
+        checkAndInject: function () {
+            if ($('.wc-order-refund-items').is(':visible')) {
+                this.injectUI();
+            }
+        },
 
-		/**
-		 * Bind event handlers.
-		 */
-		bindEvents: function () {
-			// Show/hide our fields when refund button area becomes visible.
-			$(document).on('click', '.refund-items', this.onRefundStart.bind(this));
-			$(document).on('click', '.cancel-action', this.onRefundCancel.bind(this));
+        /**
+         * Handle refund start - inject our UI.
+         */
+        onRefundStart: function () {
+            // Small delay to let WC show the refund UI
+            setTimeout(() => {
+                this.injectUI();
+            }, 150);
+        },
 
-			// Update net refund when fee changes.
-			$(document).on(
-				'input change',
-				'#wrs_return_shipping_fee',
-				this.updateNetRefund.bind(this)
-			);
-			$(document).on(
-				'change',
-				'#wrs_exempt_fee',
-				this.onExemptChange.bind(this)
-			);
+        /**
+         * Handle refund cancel - remove our UI.
+         */
+        onRefundCancel: function () {
+            this.removeUI();
+            this.injected = false;
+        },
 
-			// Watch for refund amount changes.
-			$(document).on(
-				'input change keyup',
-				'#refund_amount',
-				this.updateNetRefund.bind(this)
-			);
+        /**
+         * Inject the return shipping fee UI into the refund area.
+         */
+        injectUI: function () {
+            if (this.injected) {
+                $('.wrs-container').show();
+                return;
+            }
 
-			// Intercept refund submission to include our data.
-			this.interceptRefundSubmission();
-		},
+            // Find the refund amount row - this is where we want to insert
+            const $refundRow = $('.wc-order-refund-items tr:has(#refund_amount)');
 
-		/**
-		 * Handle refund start - show our fields.
-		 */
-		onRefundStart: function () {
-			// Small delay to ensure WC has shown the refund UI.
-			setTimeout(() => {
-				this.cacheElements();
-				this.showFeeFields();
-				this.updateNetRefund();
-			}, 100);
-		},
+            if (!$refundRow.length) {
+                // Try alternative selector for different WC versions
+                const $refundAmount = $('#refund_amount');
+                if (!$refundAmount.length) {
+                    console.log('WRS: Could not find refund amount field');
+                    return;
+                }
+            }
 
-		/**
-		 * Handle refund cancel - hide our fields.
-		 */
-		onRefundCancel: function () {
-			this.hideFeeFields();
-		},
+            // Create our UI HTML
+            const html = this.buildUI();
 
-		/**
-		 * Show the return shipping fee fields.
-		 */
-		showFeeFields: function () {
-			this.elements.feeRow.show();
-			this.elements.exemptRow.show();
-			this.elements.netRefundRow.show();
+            // Insert before the refund amount row or after reason row
+            const $reasonRow = $('.wc-order-refund-items tr:contains("Reason for refund")');
+            if ($reasonRow.length) {
+                $reasonRow.after(html);
+            } else {
+                // Insert in the refund totals area
+                const $refundTotals = $('.wc-order-refund-items .wc-order-totals');
+                if ($refundTotals.length) {
+                    $refundTotals.find('tr:last').before(html);
+                } else {
+                    // Fallback: insert before refund buttons
+                    $('.refund-actions').before('<div class="wrs-container-wrapper">' + html + '</div>');
+                }
+            }
 
-			if (this.config.showReasonField) {
-				this.elements.reasonRow.show();
-			}
-		},
+            this.injected = true;
+            this.bindEvents();
+            this.updateNetRefund();
+        },
 
-		/**
-		 * Hide the return shipping fee fields.
-		 */
-		hideFeeFields: function () {
-			this.elements.feeRow.hide();
-			this.elements.exemptRow.hide();
-			this.elements.reasonRow.hide();
-			this.elements.netRefundRow.hide();
-		},
+        /**
+         * Build the UI HTML.
+         */
+        buildUI: function () {
+            const defaultFee = parseFloat(this.config.defaultFee) || 10.00;
+            const feeLabel = this.config.feeLabel || 'Return Shipping';
 
-		/**
-		 * Handle exempt checkbox change.
-		 */
-		onExemptChange: function () {
-			const isExempt = this.elements.exemptCheckbox.is(':checked');
+            return `
+				<tr class="wrs-container wrs-fee-row">
+					<td class="label">
+						<label>
+							<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked />
+							${this.escapeHtml(feeLabel)}
+						</label>
+					</td>
+					<td class="total">
+						<span class="wrs-fee-display">
+							-<input type="number" 
+								id="wrs_return_shipping_fee" 
+								name="wrs_return_shipping_fee" 
+								class="wc_input_price" 
+								step="0.01" 
+								min="0" 
+								value="${defaultFee.toFixed(2)}"
+								style="width: 80px; text-align: right;"
+							/>
+						</span>
+					</td>
+				</tr>
+				<tr class="wrs-container wrs-net-row">
+					<td class="label">
+						<strong>Net Refund Amount:</strong>
+					</td>
+					<td class="total">
+						<strong><span id="wrs_net_refund">-</span></strong>
+					</td>
+				</tr>
+			`;
+        },
 
-			if (isExempt) {
-				this.elements.feeInput.prop('disabled', true).addClass('disabled');
-				if (this.elements.reasonRow.length) {
-					this.elements.reasonRow.hide();
-				}
-			} else {
-				this.elements.feeInput.prop('disabled', false).removeClass('disabled');
-				if (this.config.showReasonField && this.elements.reasonRow.length) {
-					this.elements.reasonRow.show();
-				}
-			}
+        /**
+         * Remove the UI.
+         */
+        removeUI: function () {
+            $('.wrs-container').hide();
+            $('.wrs-container-wrapper').hide();
+        },
 
-			this.updateNetRefund();
-		},
+        /**
+         * Bind event handlers.
+         */
+        bindEvents: function () {
+            // Toggle fee application
+            $(document).off('change.wrs', '#wrs_apply_fee');
+            $(document).on('change.wrs', '#wrs_apply_fee', this.onApplyFeeChange.bind(this));
 
-		/**
-		 * Update the net refund display.
-		 */
-		updateNetRefund: function () {
-			// Re-cache in case elements changed.
-			this.elements.refundAmount = $('#refund_amount');
-			this.elements.feeInput = $('#wrs_return_shipping_fee');
-			this.elements.exemptCheckbox = $('#wrs_exempt_fee');
-			this.elements.netRefundDisplay = $('#wrs_net_refund_display');
+            // Update on fee amount change
+            $(document).off('input.wrs change.wrs', '#wrs_return_shipping_fee');
+            $(document).on('input.wrs change.wrs', '#wrs_return_shipping_fee', this.updateNetRefund.bind(this));
 
-			const refundAmount = this.parseAmount(this.elements.refundAmount.val());
-			const feeAmount = this.elements.exemptCheckbox.is(':checked')
-				? 0
-				: this.parseAmount(this.elements.feeInput.val());
+            // Update on refund amount change
+            $(document).off('input.wrs change.wrs keyup.wrs', '#refund_amount');
+            $(document).on('input.wrs change.wrs keyup.wrs', '#refund_amount', this.updateNetRefund.bind(this));
 
-			let netRefund = refundAmount - feeAmount;
+            // Intercept AJAX submission
+            this.interceptAjax();
+        },
 
-			// Prevent negative net refund.
-			if (netRefund < 0) {
-				netRefund = 0;
-				this.elements.feeInput.addClass('wrs-error');
-			} else {
-				this.elements.feeInput.removeClass('wrs-error');
-			}
+        /**
+         * Handle apply fee checkbox change.
+         */
+        onApplyFeeChange: function () {
+            const checked = $('#wrs_apply_fee').is(':checked');
+            $('#wrs_return_shipping_fee').prop('disabled', !checked);
 
-			// Format and display.
-			const formatted = this.formatCurrency(netRefund);
-			this.elements.netRefundDisplay.text(formatted);
+            if (!checked) {
+                $('.wrs-fee-row .wrs-fee-display').addClass('wrs-disabled');
+            } else {
+                $('.wrs-fee-row .wrs-fee-display').removeClass('wrs-disabled');
+            }
 
-			// Update styling based on fee impact.
-			if (feeAmount > 0 && feeAmount < refundAmount) {
-				this.elements.netRefundDisplay
-					.removeClass('wrs-warning')
-					.addClass('wrs-success');
-			} else if (feeAmount >= refundAmount) {
-				this.elements.netRefundDisplay
-					.removeClass('wrs-success')
-					.addClass('wrs-warning');
-			} else {
-				this.elements.netRefundDisplay.removeClass('wrs-success wrs-warning');
-			}
-		},
+            this.updateNetRefund();
+        },
 
-		/**
-		 * Parse a currency amount string to float.
-		 *
-		 * @param {string} value Currency string.
-		 * @return {number} Parsed amount.
-		 */
-		parseAmount: function (value) {
-			if (!value) {
-				return 0;
-			}
+        /**
+         * Update the net refund display.
+         */
+        updateNetRefund: function () {
+            const refundAmount = this.parseAmount($('#refund_amount').val());
+            const applyFee = $('#wrs_apply_fee').is(':checked');
+            const feeAmount = applyFee ? this.parseAmount($('#wrs_return_shipping_fee').val()) : 0;
 
-			// Remove currency symbols and thousand separators.
-			const cleaned = value
-				.toString()
-				.replace(/[^0-9.,\-]/g, '')
-				.replace(',', '.');
+            let netRefund = refundAmount - feeAmount;
 
-			return parseFloat(cleaned) || 0;
-		},
+            // Validate
+            if (feeAmount > refundAmount) {
+                $('#wrs_return_shipping_fee').addClass('wrs-error');
+                netRefund = 0;
+            } else {
+                $('#wrs_return_shipping_fee').removeClass('wrs-error');
+            }
 
-		/**
-		 * Format a number as currency.
-		 *
-		 * @param {number} amount Amount to format.
-		 * @return {string} Formatted currency string.
-		 */
-		formatCurrency: function (amount) {
-			// Use WooCommerce accounting if available.
-			if (
-				typeof window.accounting !== 'undefined' &&
-				typeof window.woocommerce_admin_meta_boxes !== 'undefined'
-			) {
-				const params = window.woocommerce_admin_meta_boxes;
-				return window.accounting.formatMoney(amount, {
-					symbol: params.currency_format_symbol,
-					decimal: params.currency_format_decimal_sep,
-					thousand: params.currency_format_thousand_sep,
-					precision: params.currency_format_num_decimals,
-					format: params.currency_format,
-				});
-			}
+            // Format and display
+            const formatted = this.formatCurrency(netRefund);
+            $('#wrs_net_refund').text(formatted);
+        },
 
-			// Fallback formatting.
-			return '$' + amount.toFixed(2);
-		},
+        /**
+         * Parse currency string to float.
+         */
+        parseAmount: function (value) {
+            if (!value) return 0;
+            const cleaned = value.toString().replace(/[^0-9.,\-]/g, '').replace(',', '.');
+            return parseFloat(cleaned) || 0;
+        },
 
-		/**
-		 * Intercept refund form submission to include our data.
-		 */
-		interceptRefundSubmission: function () {
-			// Hook into the WooCommerce AJAX refund.
-			$(document).ajaxSend((event, jqXHR, settings) => {
-				// Check if this is a refund request.
-				if (
-					settings.url &&
-					settings.url.indexOf('wc_ajax') !== -1 &&
-					settings.data &&
-					settings.data.indexOf('action=woocommerce_refund_line_items') !== -1
-				) {
-					// Add our fee data to the request.
-					const feeAmount = this.elements.exemptCheckbox.is(':checked')
-						? 0
-						: this.parseAmount(this.elements.feeInput.val());
+        /**
+         * Format number as currency.
+         */
+        formatCurrency: function (amount) {
+            if (typeof window.accounting !== 'undefined' && window.woocommerce_admin_meta_boxes) {
+                const params = window.woocommerce_admin_meta_boxes;
+                return window.accounting.formatMoney(amount, {
+                    symbol: params.currency_format_symbol,
+                    decimal: params.currency_format_decimal_sep,
+                    thousand: params.currency_format_thousand_sep,
+                    precision: params.currency_format_num_decimals,
+                    format: params.currency_format,
+                });
+            }
+            return '$' + amount.toFixed(2);
+        },
 
-					const isExempt = this.elements.exemptCheckbox.is(':checked')
-						? 1
-						: 0;
+        /**
+         * Escape HTML for safe insertion.
+         */
+        escapeHtml: function (text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        },
 
-					const reason = $('#wrs_fee_reason').val() || '';
+        /**
+         * Intercept the AJAX refund submission to include our data.
+         */
+        interceptAjax: function () {
+            // Only set up once
+            if (this.ajaxIntercepted) return;
+            this.ajaxIntercepted = true;
 
-					settings.data +=
-						'&wrs_return_shipping_fee=' + encodeURIComponent(feeAmount);
-					settings.data += '&wrs_exempt_fee=' + encodeURIComponent(isExempt);
-					settings.data += '&wrs_fee_reason=' + encodeURIComponent(reason);
-				}
-			});
-		},
+            $(document).ajaxSend((event, jqXHR, settings) => {
+                // Check if this is a refund request
+                if (settings.data && settings.data.indexOf('action=woocommerce_refund_line_items') !== -1) {
+                    const applyFee = $('#wrs_apply_fee').is(':checked');
+                    const feeAmount = applyFee ? this.parseAmount($('#wrs_return_shipping_fee').val()) : 0;
 
-		/**
-		 * Handle modal load events.
-		 */
-		onModalLoad: function () {
-			this.setup();
-		},
-	};
+                    // Add our data to the request
+                    settings.data += '&wrs_return_shipping_fee=' + encodeURIComponent(feeAmount);
+                    settings.data += '&wrs_apply_fee=' + (applyFee ? '1' : '0');
+                }
+            });
+        },
+    };
 
-	// Initialize.
-	WRS.init();
+    // Initialize
+    WRS.init();
 })(jQuery);

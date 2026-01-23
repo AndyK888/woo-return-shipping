@@ -1,104 +1,101 @@
 /**
  * WooCommerce Return Shipping - Admin Styles
  *
- * Minimal, native-looking styles for the refund modal enhancements.
- *
  * @package WooReturnShipping
  */
 
 /* Return shipping fee rows */
-.wrs-return-shipping-row,
-.wrs-exempt-row,
-.wrs-reason-row,
-.wrs-net-refund-row {
-	background-color: #f8f9fa;
+.wrs-container {
+    background-color: #fcf8e3 !important;
 }
 
-.wrs-return-shipping-row td,
-.wrs-exempt-row td,
-.wrs-reason-row td,
-.wrs-net-refund-row td {
-	padding: 8px 12px;
-	border-bottom: 1px solid #e0e0e0;
+.wrs-container td {
+    padding: 8px 1em !important;
+    border-top: 1px solid #ddd;
 }
 
-/* Fee input styling */
+.wrs-fee-row td.label label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.wrs-fee-row td.label input[type="checkbox"] {
+    margin: 0;
+    width: 18px;
+    height: 18px;
+}
+
+/* Fee input */
 #wrs_return_shipping_fee {
-	width: 100px;
-	text-align: right;
+    width: 80px !important;
+    text-align: right;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
 }
 
-#wrs_return_shipping_fee.disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
+#wrs_return_shipping_fee:focus {
+    border-color: #007cba;
+    box-shadow: 0 0 0 1px #007cba;
+    outline: none;
 }
 
 #wrs_return_shipping_fee.wrs-error {
-	border-color: #d63638;
-	background-color: #fcf0f1;
+    border-color: #d63638 !important;
+    background-color: #fcf0f1 !important;
 }
 
-/* Reason input */
-.wrs-reason-input {
-	width: 200px;
+#wrs_return_shipping_fee:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-/* Net refund display */
-#wrs_net_refund_display {
-	font-size: 14px;
-	padding: 4px 8px;
-	border-radius: 3px;
-	display: inline-block;
+/* Fee display wrapper */
+.wrs-fee-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
 }
 
-#wrs_net_refund_display.wrs-success {
-	background-color: #d4edda;
-	color: #155724;
+.wrs-fee-display.wrs-disabled {
+    opacity: 0.4;
+    text-decoration: line-through;
 }
 
-#wrs_net_refund_display.wrs-warning {
-	background-color: #fff3cd;
-	color: #856404;
+/* Net refund row */
+.wrs-net-row {
+    background-color: #d4edda !important;
 }
 
-/* Exempt checkbox alignment */
-#wrs_exempt_fee {
-	margin-right: 8px;
-	vertical-align: middle;
+.wrs-net-row td {
+    padding: 10px 1em !important;
 }
 
-/* Tooltip styling */
-.wrs-exempt-row .woocommerce-help-tip {
-	vertical-align: middle;
+#wrs_net_refund {
+    font-size: 14px;
+    color: #155724;
 }
 
-/* Settings page styles */
-.wrs-settings-section {
-	margin-top: 20px;
+/* Container wrapper for button area injection */
+.wrs-container-wrapper {
+    margin: 15px 0;
+    padding: 12px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
 }
 
-/* Email note styling (for preview in admin) */
-.wrs-refund-note-preview {
-	padding: 12px;
-	background-color: #f8f8f8;
-	border-left: 4px solid #96588a;
-	margin: 10px 0;
+.wrs-container-wrapper .wrs-container {
+    display: block;
+    margin-bottom: 8px;
 }
 
-/* Responsive adjustments */
+/* Responsive */
 @media screen and (max-width: 782px) {
-	#wrs_return_shipping_fee {
-		width: 80px;
-	}
-
-	.wrs-reason-input {
-		width: 150px;
-	}
-
-	.wrs-return-shipping-row td,
-	.wrs-exempt-row td,
-	.wrs-reason-row td,
-	.wrs-net-refund-row td {
-		padding: 6px 8px;
-	}
+    #wrs_return_shipping_fee {
+        width: 70px !important;
+    }
 }

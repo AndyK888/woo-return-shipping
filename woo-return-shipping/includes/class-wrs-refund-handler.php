@@ -34,15 +34,17 @@ class WRS_Refund_Handler {
 	 * @param array           $args   Refund arguments.
 	 */
 	public static function process_return_fee( WC_Order_Refund $refund, array $args ): void {
-		// Check if fee was submitted and not exempted.
+		// Check if apply_fee is set (checkbox was checked).
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by WooCommerce.
-		if ( empty( $_POST['wrs_return_shipping_fee'] ) ) {
+		$apply_fee = isset( $_POST['wrs_apply_fee'] ) && '1' === $_POST['wrs_apply_fee'];
+
+		if ( ! $apply_fee ) {
 			return;
 		}
 
-		// Check for exemption.
+		// Check if fee amount was submitted.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( ! empty( $_POST['wrs_exempt_fee'] ) ) {
+		if ( empty( $_POST['wrs_return_shipping_fee'] ) ) {
 			return;
 		}
 
