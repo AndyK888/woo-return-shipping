@@ -5,6 +5,7 @@
  * Core logic for adding return shipping fee to refunds.
  *
  * @package WooReturnShipping
+ * @version 1.3.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -20,15 +21,19 @@ class WRS_Refund_Handler {
 	 * Initialize refund hooks.
 	 */
 	public static function init(): void {
-		// Hook into refund creation.
+		// Hook into refund creation - runs AFTER gateway processes.
 		add_action( 'woocommerce_create_refund', array( __CLASS__, 'process_return_fee' ), 10, 2 );
 
-		// Hook into AJAX refund request to capture our custom field.
+		// Hook to add order note after refund.
 		add_action( 'woocommerce_order_refunded', array( __CLASS__, 'after_refund_created' ), 10, 2 );
 	}
 
 	/**
 	 * Process return shipping fee during refund creation.
+	 *
+	 * IMPORTANT: At this point, the gateway has already processed the refund
+	 * with the NET amount (because we modified refund_amount in the AJAX).
+	 * Now we add the fee line item for record-keeping.
 	 *
 	 * @param WC_Order_Refund $refund Refund object.
 	 * @param array           $args   Refund arguments.
@@ -56,12 +61,14 @@ class WRS_Refund_Handler {
 			return;
 		}
 
-		// Get the refund total (negative value).
-		$refund_total = abs( $refund->get_total() );
+		// Get original refund amount (before our fee deduction).
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$original_amount = isset( $_POST['wrs_original_refund_amount'] ) 
+			? floatval( sanitize_text_field( wp_unslash( $_POST['wrs_original_refund_amount'] ) ) )
+			: ( abs( $refund->get_total() ) + $fee_amount );
 
 		// Validate fee doesn't exceed refund amount.
-		if ( $fee_amount > $refund_total ) {
-			// Store error for display.
+		if ( $fee_amount > $original_amount ) {
 			$refund->add_meta_data( '_wrs_error', __( 'Return shipping fee cannot exceed refund amount.', 'woo-return-shipping' ), true );
 			$refund->save();
 			return;
@@ -76,11 +83,10 @@ class WRS_Refund_Handler {
 		$tax_class  = get_option( 'wrs_tax_class', '' );
 
 		// Set fee properties.
-		// In WooCommerce refund math: Refund items are negative, fees are positive.
-		// A positive fee reduces the total refund amount.
+		// Positive fee on a refund = reduces the refund total.
 		$fee_item->set_name( $fee_label );
 		$fee_item->set_amount( $fee_amount );
-		$fee_item->set_total( $fee_amount ); // Positive value reduces refund.
+		$fee_item->set_total( $fee_amount );
 		$fee_item->set_tax_status( $tax_status );
 
 		if ( 'taxable' === $tax_status && ! empty( $tax_class ) ) {
@@ -90,27 +96,19 @@ class WRS_Refund_Handler {
 		// Add fee to refund.
 		$refund->add_item( $fee_item );
 
-		// Store the fee reason if provided.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( ! empty( $_POST['wrs_fee_reason'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$reason = sanitize_text_field( wp_unslash( $_POST['wrs_fee_reason'] ) );
-			$refund->add_meta_data( '_wrs_fee_reason', $reason, true );
-		}
-
 		// Store fee amount for reference.
 		$refund->add_meta_data( '_wrs_return_fee', $fee_amount, true );
+		$refund->add_meta_data( '_wrs_original_amount', $original_amount, true );
 
-		// Recalculate totals to reflect the fee.
+		// Recalculate totals.
 		$refund->calculate_totals( false );
 		$refund->save();
+
+		error_log( 'WRS: Added return fee line item: ' . $fee_amount );
 	}
 
 	/**
-	 * After refund is created, ensure gateway receives correct amount.
-	 *
-	 * Note: The gateway amount is handled by WooCommerce based on refund total.
-	 * Since we add a positive fee to the refund, the total is already adjusted.
+	 * After refund is created, add order note.
 	 *
 	 * @param int $order_id  Order ID.
 	 * @param int $refund_id Refund ID.
@@ -122,32 +120,23 @@ class WRS_Refund_Handler {
 			return;
 		}
 
-		// Log the refund details for debugging.
-		$fee_amount = $refund->get_meta( '_wrs_return_fee' );
+		$fee_amount      = $refund->get_meta( '_wrs_return_fee' );
+		$original_amount = $refund->get_meta( '_wrs_original_amount' );
 
 		if ( $fee_amount ) {
 			$order = wc_get_order( $order_id );
 			if ( $order ) {
+				$net_refund = $original_amount - $fee_amount;
 				$order->add_order_note(
 					sprintf(
-						/* translators: 1: fee amount, 2: net refund amount */
-						__( 'Return shipping fee of %1$s deducted. Net refund: %2$s', 'woo-return-shipping' ),
+						/* translators: 1: original amount, 2: fee amount, 3: net refund */
+						__( 'Return shipping fee applied. Original: %1$s, Fee: %2$s, Net refund to customer: %3$s', 'woo-return-shipping' ),
+						wc_price( $original_amount ),
 						wc_price( $fee_amount ),
-						wc_price( abs( $refund->get_total() ) )
+						wc_price( $net_refund )
 					)
 				);
 			}
 		}
-	}
-
-	/**
-	 * Get the net refund amount (refund total minus fee).
-	 *
-	 * @param WC_Order_Refund $refund Refund object.
-	 * @return float
-	 */
-	public static function get_net_refund_amount( WC_Order_Refund $refund ): float {
-		// The refund total already includes the fee deduction.
-		return abs( $refund->get_total() );
 	}
 }
