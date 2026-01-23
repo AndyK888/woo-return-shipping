@@ -4,98 +4,50 @@
  * @package WooReturnShipping
  */
 
-/* Return shipping fee rows */
-.wrs-container {
-    background-color: #fcf8e3 !important;
+/* Fee row styling */
+#wrs-return-shipping-row {
+    background-color: #fffbeb !important;
 }
 
-.wrs-container td {
-    padding: 8px 1em !important;
-    border-top: 1px solid #ddd;
+#wrs-return-shipping-row td {
+    padding: 8px 12px !important;
+    vertical-align: middle !important;
 }
 
-.wrs-fee-row td.label label {
+.wrs-fee-label {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    color: #23282d;
 }
 
-.wrs-fee-row td.label input[type="checkbox"] {
+.wrs-fee-label label {
+    cursor: pointer;
     margin: 0;
-    width: 18px;
-    height: 18px;
 }
 
-/* Fee input */
-#wrs_return_shipping_fee {
-    width: 80px !important;
-    text-align: right;
-    padding: 4px 8px;
-    border: 1px solid #ddd;
-    border-radius: 3px;
+.wrs-fee-input {
+    text-align: right !important;
+    color: #c00 !important;
+    font-weight: 600 !important;
 }
 
-#wrs_return_shipping_fee:focus {
-    border-color: #007cba;
-    box-shadow: 0 0 0 1px #007cba;
-    outline: none;
-}
-
-#wrs_return_shipping_fee.wrs-error {
-    border-color: #d63638 !important;
-    background-color: #fcf0f1 !important;
-}
-
-#wrs_return_shipping_fee:disabled {
+.wrs-fee-input:disabled {
     opacity: 0.5;
-    cursor: not-allowed;
 }
 
-/* Fee display wrapper */
-.wrs-fee-display {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-}
-
-.wrs-fee-display.wrs-disabled {
-    opacity: 0.4;
-    text-decoration: line-through;
-}
-
-/* Net refund row */
-.wrs-net-row {
-    background-color: #d4edda !important;
-}
-
-.wrs-net-row td {
-    padding: 10px 1em !important;
-}
-
-#wrs_net_refund {
-    font-size: 14px;
-    color: #155724;
-}
-
-/* Container wrapper for button area injection */
-.wrs-container-wrapper {
+/* Summary box */
+.wrs-summary-box {
     margin: 15px 0;
-    padding: 12px;
-    background: #f8f9fa;
-    border: 1px solid #ddd;
+    padding: 12px 15px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
     border-radius: 4px;
 }
 
-.wrs-container-wrapper .wrs-container {
-    display: block;
-    margin-bottom: 8px;
-}
-
-/* Responsive */
-@media screen and (max-width: 782px) {
-    #wrs_return_shipping_fee {
-        width: 70px !important;
-    }
+/* Yellow box fallback (from template) */
+.wrs-refund-fields {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #fffbeb;
+    border: 1px solid #f0d866;
+    border-radius: 4px;
 }
