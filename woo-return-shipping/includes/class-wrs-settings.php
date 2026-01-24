@@ -99,6 +99,14 @@ class WRS_Settings {
 			),
 
 			array(
+				'title'   => __( 'Add Fee Line to Orders', 'woo-return-shipping' ),
+				'desc'    => __( 'Add a $0 "Return Shipping" line to new orders. This appears in the refund table, making it easy to enter the fee amount.', 'woo-return-shipping' ),
+				'id'      => 'wrs_add_checkout_fee',
+				'type'    => 'checkbox',
+				'default' => 'yes',
+			),
+
+			array(
 				'type' => 'sectionend',
 				'id'   => 'wrs_settings_section',
 			),

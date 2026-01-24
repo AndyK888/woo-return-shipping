@@ -1,43 +1,75 @@
 /**
  * WooCommerce Return Shipping - Admin Refund Enhancement
  *
- * Injects UI before refund action buttons using JavaScript.
- * Script is confirmed loading as of v1.9.0.
+ * Uses multiple selectors and MutationObserver to detect refund panel.
  *
  * @package WooReturnShipping
- * @version 2.0.0
+ * @version 2.1.0
  */
 
 (function ($) {
     'use strict';
 
-    console.log('WRS v2.0.0: Script loaded');
+    console.log('WRS v2.1.0: Script loaded');
 
     var WRS = {
         config: window.wrsConfig || { defaultFee: 10.00, feeLabel: 'Return Shipping' },
+        observing: false,
 
         init: function () {
-            console.log('WRS: init() with config:', this.config);
+            console.log('WRS: init()');
             var self = this;
 
-            // When refund button is clicked, wait and then inject.
-            $(document).on('click', '.refund-items', function () {
-                console.log('WRS: Refund items clicked');
-                // Wait for WC to show the refund UI.
-                setTimeout(function () {
-                    self.inject();
-                }, 300);
+            // Try MANY possible button selectors for refund.
+            var buttonSelectors = [
+                '.refund-items',
+                '.button.refund-items',
+                '.wc-order-refund-items',
+                'button.refund-items',
+                '[data-action="refund"]',
+                '.do-api-refund',
+                '.do-manual-refund'
+            ];
+
+            $(document).on('click', buttonSelectors.join(', '), function (e) {
+                console.log('WRS: Refund button clicked!', e.target);
+                setTimeout(function () { self.tryInject(); }, 400);
             });
 
-            // Hide on cancel.
-            $(document).on('click', '.cancel-action', function () {
+            // Also watch for Cancel button.
+            $(document).on('click', '.cancel-action, .wc-order-bulk-actions .cancel', function () {
                 console.log('WRS: Cancel clicked');
                 $('#wrs-fee-container').remove();
             });
+
+            // ALSO use a MutationObserver to detect when refund UI appears.
+            this.observeRefundPanel();
+
+            // Check immediately if refund panel is already visible.
+            setTimeout(function () { self.tryInject(); }, 1000);
         },
 
-        inject: function () {
-            console.log('WRS: inject() starting');
+        observeRefundPanel: function () {
+            if (this.observing) return;
+            this.observing = true;
+
+            var self = this;
+            var observer = new MutationObserver(function (mutations) {
+                // Check if refund-actions appeared.
+                if ($('.refund-actions:visible').length && !$('#wrs-fee-container').length) {
+                    console.log('WRS: MutationObserver detected refund-actions');
+                    self.tryInject();
+                }
+            });
+
+            // Observe the woocommerce order metabox.
+            var target = document.querySelector('#woocommerce-order-items') || document.body;
+            observer.observe(target, { childList: true, subtree: true, attributes: true });
+            console.log('WRS: MutationObserver started on', target);
+        },
+
+        tryInject: function () {
+            console.log('WRS: tryInject()');
 
             // Don't double-inject.
             if ($('#wrs-fee-container').length) {
@@ -45,21 +77,29 @@
                 return;
             }
 
-            // Find the refund actions div.
-            var $actions = $('.refund-actions');
-            console.log('WRS: Found .refund-actions:', $actions.length);
+            // Look for refund-actions in various possible containers.
+            var $actions = $('.refund-actions:visible');
+            console.log('WRS: Looking for .refund-actions:visible, found:', $actions.length);
 
             if (!$actions.length) {
-                console.log('WRS: .refund-actions not found, retrying in 500ms');
-                var self = this;
-                setTimeout(function () { self.inject(); }, 500);
+                // Try without :visible.
+                $actions = $('.refund-actions');
+                console.log('WRS: Looking for .refund-actions (any), found:', $actions.length);
+            }
+
+            if (!$actions.length) {
+                console.log('WRS: No refund-actions found');
                 return;
             }
 
-            // Check if refund is active.
+            // Check if refund amount input exists.
             var $refundAmount = $('#refund_amount');
-            console.log('WRS: Found #refund_amount:', $refundAmount.length, 'visible:', $refundAmount.is(':visible'));
+            console.log('WRS: #refund_amount found:', $refundAmount.length, 'value:', $refundAmount.val());
 
+            this.doInject($actions.first());
+        },
+
+        doInject: function ($actions) {
             var fee = parseFloat(this.config.defaultFee) || 10.00;
             var label = this.config.feeLabel || 'Return Shipping';
 
@@ -89,7 +129,7 @@
                 '</div>';
 
             $actions.before(html);
-            console.log('WRS: UI injected before', $actions.get(0));
+            console.log('WRS: ✅ UI INJECTED!');
 
             this.bind();
             this.update();
@@ -98,16 +138,18 @@
         bind: function () {
             var self = this;
 
-            $(document).on('change', '#wrs_apply_fee', function () {
+            $(document).off('.wrs');
+
+            $(document).on('change.wrs', '#wrs_apply_fee', function () {
                 $('#wrs_return_shipping_fee').prop('disabled', !$(this).is(':checked'));
                 self.update();
             });
 
-            $(document).on('input change', '#wrs_return_shipping_fee, #refund_amount', function () {
+            $(document).on('input.wrs change.wrs', '#wrs_return_shipping_fee, #refund_amount', function () {
                 self.update();
             });
 
-            $(document).on('change', '.refund_order_item_qty, .refund_line_total', function () {
+            $(document).on('change.wrs', '.refund_order_item_qty, .refund_line_total', function () {
                 setTimeout(function () { self.update(); }, 150);
             });
 
@@ -135,8 +177,6 @@
 
             $('#wrs_gross').text('$' + gross.toFixed(2));
             $('#wrs_net').text('$' + net.toFixed(2));
-
-            console.log('WRS: Updated display', { gross: gross, fee: fee, net: net });
         },
 
         escapeHtml: function (str) {
