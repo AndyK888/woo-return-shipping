@@ -1,0 +1,19 @@
+# System Files
+.DS_Store
+Thumbs.db
+
+# Build Artifacts
+*.zip
+*.tar.gz
+
+# AI Agent Directory
+.agent/
+.agent
+
+# IDE Files
+.vscode/
+.idea/
+
+# Logs
+debug.log
+error_log
