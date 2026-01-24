@@ -49,8 +49,11 @@ Deduct return shipping fees from WooCommerce refunds. Specifically designed to h
 
 ## 📝 Changelog
 
-### 2.6.0
-*   **Cleanup**: Removed all debug logging (`error_log` and `console.log`) for production release.
+### 2.6.2
+*   **Maintenance**: Cleaned up repository (removed excluded files).
+
+### 2.6.1
+*   **Update**: Updated plugin author information.
 
 ### 2.5.0
 *   **Fix**: Updated email handler to support partial refund emails.
