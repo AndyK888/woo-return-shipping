@@ -1,5 +1,5 @@
 === WooCommerce Return Shipping Deduction ===
-Contributors: yourname
+Contributors: Andrii Kaprii
 Tags: woocommerce, refund, return shipping, shipping fee, order management
 Requires at least: 6.0
 Tested up to: 6.4
