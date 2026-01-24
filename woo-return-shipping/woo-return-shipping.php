@@ -3,7 +3,7 @@
  * Plugin Name: WooCommerce Return Shipping Deduction
  * Plugin URI: https://github.com/your-repo/woo-return-shipping
  * Description: Deduct return shipping fees from refunds. The fee appears only on the refund receipt, not the original order.
- * Version: 2.2.0
+ * Version: 2.3.0
  * Author: Your Name
  * Author URI: https://yoursite.com
  * License: GPL-2.0-or-later
@@ -21,7 +21,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants.
-define( 'WRS_VERSION', '2.2.0' );
+define( 'WRS_VERSION', '2.3.0' );
 define( 'WRS_PLUGIN_FILE', __FILE__ );
 define( 'WRS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WRS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
