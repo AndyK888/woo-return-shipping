@@ -5,7 +5,7 @@
  * Uses official WooCommerce hook for the order items metabox.
  *
  * @package WooReturnShipping
- * @version 1.9.0
+ * @version 2.6.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -19,10 +19,7 @@ class WRS_Admin {
 	 * Initialize admin hooks.
 	 */
 	public static function init(): void {
-		// Use the OFFICIAL WooCommerce hook for order items.
 		add_action( 'woocommerce_admin_order_items_after_refunds', array( __CLASS__, 'render_fee_input' ), 10, 1 );
-		
-		// Enqueue styles and scripts.
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 	}
 
@@ -30,52 +27,42 @@ class WRS_Admin {
 	 * Enqueue assets on order screens.
 	 */
 	public static function enqueue_assets(): void {
-		// Check if on order screen - support all possible screen IDs.
 		$screen = get_current_screen();
-		
-		error_log( 'WRS Debug: Current screen ID = ' . ( $screen ? $screen->id : 'null' ) );
 		
 		if ( ! $screen ) {
 			return;
 		}
 
-		// Cast a wide net for screen detection.
 		$valid = false;
 		
-		// Classic orders.
 		if ( 'shop_order' === $screen->id ) {
 			$valid = true;
 		}
 		
-		// HPOS orders.
 		if ( strpos( $screen->id, 'wc-orders' ) !== false ) {
 			$valid = true;
 		}
 		
-		// Post type check.
 		if ( 'post' === $screen->base && 'shop_order' === $screen->post_type ) {
 			$valid = true;
 		}
 
 		if ( ! $valid ) {
-			error_log( 'WRS Debug: Not a valid screen' );
 			return;
 		}
-
-		error_log( 'WRS Debug: Valid order screen detected' );
 
 		wp_enqueue_style(
 			'wrs-admin',
 			WRS_PLUGIN_URL . 'assets/css/admin.css',
 			array(),
-			'1.9.0'
+			WRS_VERSION
 		);
 
 		wp_enqueue_script(
 			'wrs-admin',
 			WRS_PLUGIN_URL . 'assets/js/admin-refund.js',
 			array( 'jquery' ),
-			'1.9.0',
+			WRS_VERSION,
 			true
 		);
 
@@ -95,8 +82,6 @@ class WRS_Admin {
 	 * @param int $order_id Order ID.
 	 */
 	public static function render_fee_input( $order_id ): void {
-		error_log( 'WRS Debug: render_fee_input called for order ' . $order_id );
-
 		$order = wc_get_order( $order_id );
 		
 		if ( ! $order || 'shop_order_refund' === $order->get_type() ) {

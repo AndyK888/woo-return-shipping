@@ -48,14 +48,12 @@ class WRS_Refund_Handler {
 		$apply_fee = isset( $_POST['wrs_apply_fee'] ) && '1' === $_POST['wrs_apply_fee'];
 
 		if ( ! $apply_fee ) {
-			error_log( 'WRS: Fee not applied (checkbox unchecked)' );
 			return;
 		}
 
 		// Get fee amount from POST.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		if ( empty( $_POST['wrs_return_shipping_fee'] ) ) {
-			error_log( 'WRS: No fee amount in POST' );
 			return;
 		}
 
@@ -63,7 +61,6 @@ class WRS_Refund_Handler {
 		$fee_amount = floatval( sanitize_text_field( wp_unslash( $_POST['wrs_return_shipping_fee'] ) ) );
 
 		if ( $fee_amount <= 0 ) {
-			error_log( 'WRS: Fee amount is zero or negative' );
 			return;
 		}
 
@@ -72,7 +69,6 @@ class WRS_Refund_Handler {
 
 		// Validate fee doesn't exceed refund.
 		if ( $fee_amount > $original_amount ) {
-			error_log( 'WRS: Fee exceeds refund amount, skipping' );
 			return;
 		}
 
@@ -100,13 +96,6 @@ class WRS_Refund_Handler {
 		$fee_item->set_tax_status( get_option( 'wrs_tax_status', 'none' ) );
 
 		$refund->add_item( $fee_item );
-
-		error_log( sprintf(
-			'WRS: Modified refund - Original: %s, Fee: %s, Net (to gateway): %s',
-			$original_amount,
-			$fee_amount,
-			$net_amount
-		) );
 	}
 
 	/**
