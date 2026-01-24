@@ -33,6 +33,27 @@ class WRS_Checkout_Fee {
 		// Hide fee in customer-facing areas.
 		add_filter( 'woocommerce_get_order_item_totals', array( __CLASS__, 'hide_fee_in_totals' ), 10, 3 );
 		add_filter( 'woocommerce_order_get_items', array( __CLASS__, 'filter_order_items' ), 10, 3 );
+
+		// Add debug console log on cart/checkout for developers.
+		add_action( 'wp_footer', array( __CLASS__, 'add_debug_console_log' ) );
+	}
+
+	/**
+	 * Add console log on cart and checkout pages for debugging.
+	 */
+	public static function add_debug_console_log(): void {
+		if ( ! is_cart() && ! is_checkout() ) {
+			return;
+		}
+
+		$enabled = get_option( 'wrs_add_checkout_fee', 'yes' );
+		$page    = is_cart() ? 'cart' : 'checkout';
+		?>
+		<script type="text/javascript">
+			console.log('WRS: Return Shipping plugin active on <?php echo esc_js( $page ); ?> page');
+			console.log('WRS: Fee will be added to order after checkout (enabled: <?php echo esc_js( $enabled ); ?>)');
+		</script>
+		<?php
 	}
 
 	/**
