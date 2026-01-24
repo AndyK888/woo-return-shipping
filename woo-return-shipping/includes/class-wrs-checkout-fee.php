@@ -90,12 +90,12 @@ class WRS_Checkout_Fee {
 	/**
 	 * Hide our fee from order totals in customer-facing views.
 	 *
-	 * @param array    $total_rows Order total rows.
-	 * @param WC_Order $order      Order object.
-	 * @param string   $tax_display Tax display mode.
+	 * @param array                         $total_rows  Order total rows.
+	 * @param WC_Order|WC_Order_Refund|mixed $order       Order object.
+	 * @param string                         $tax_display Tax display mode.
 	 * @return array
 	 */
-	public static function hide_fee_in_totals( array $total_rows, WC_Order $order, string $tax_display ): array {
+	public static function hide_fee_in_totals( array $total_rows, $order, string $tax_display ): array {
 		// Don't hide in admin.
 		if ( is_admin() ) {
 			return $total_rows;
@@ -124,19 +124,19 @@ class WRS_Checkout_Fee {
 	/**
 	 * Filter order items to hide our fee in customer-facing areas.
 	 *
-	 * @param array    $items Order items.
-	 * @param WC_Order $order Order object.
-	 * @param array    $types Item types.
+	 * @param array                         $items Order items.
+	 * @param WC_Order|WC_Order_Refund|mixed $order Order object.
+	 * @param array                         $types Item types.
 	 * @return array
 	 */
-	public static function filter_order_items( array $items, WC_Order $order, array $types ): array {
+	public static function filter_order_items( array $items, $order, array $types ): array {
 		// Don't filter in admin.
 		if ( is_admin() ) {
 			return $items;
 		}
 
 		// Don't filter for refund orders (show fee on refund emails).
-		if ( 'shop_order_refund' === $order->get_type() ) {
+		if ( is_a( $order, 'WC_Order_Refund' ) || ( method_exists( $order, 'get_type' ) && 'shop_order_refund' === $order->get_type() ) ) {
 			return $items;
 		}
 
