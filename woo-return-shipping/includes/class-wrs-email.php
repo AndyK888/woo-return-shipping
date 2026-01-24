@@ -5,6 +5,7 @@
  * Handles email modifications for refund notifications.
  *
  * @package WooReturnShipping
+ * @version 2.4.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -12,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Class WRS_Email
  *
- * Modifies refund emails to include return shipping fee information.
+ * Ensures the return shipping fee is visible in refund emails.
  */
 class WRS_Email {
 
@@ -22,18 +23,15 @@ class WRS_Email {
 	public static function init(): void {
 		// Add note to refund emails.
 		add_action( 'woocommerce_email_after_order_table', array( __CLASS__, 'add_refund_note' ), 10, 4 );
-
-		// Ensure fee line items are displayed in email.
-		add_filter( 'woocommerce_get_order_item_totals', array( __CLASS__, 'add_fee_to_totals' ), 10, 3 );
 	}
 
 	/**
 	 * Add return shipping fee note to refund emails.
 	 *
-	 * @param WC_Order $order         Order object.
-	 * @param bool     $sent_to_admin Whether email is for admin.
-	 * @param bool     $plain_text    Whether email is plain text.
-	 * @param WC_Email $email         Email object.
+	 * @param WC_Order|WC_Order_Refund $order         Order object.
+	 * @param bool                      $sent_to_admin Whether email is for admin.
+	 * @param bool                      $plain_text    Whether email is plain text.
+	 * @param WC_Email|null             $email         Email object.
 	 */
 	public static function add_refund_note( $order, bool $sent_to_admin, bool $plain_text, $email ): void {
 		// Only add note to customer refund emails.
@@ -41,29 +39,38 @@ class WRS_Email {
 			return;
 		}
 
-		// Check if this is a refund order.
-		if ( ! $order instanceof WC_Order_Refund ) {
+		// We're looking at the parent order, but we need the refund order.
+		// Get the most recent refund for this order.
+		$refund = self::get_latest_refund( $order );
+
+		if ( ! $refund ) {
 			return;
 		}
 
-		// Check if return fee was applied.
-		$fee_amount = $order->get_meta( '_wrs_return_fee' );
+		// Check if refund has our fee.
+		$fee_amount = self::get_return_fee_from_refund( $refund );
 
-		if ( empty( $fee_amount ) ) {
+		if ( $fee_amount <= 0 ) {
 			return;
 		}
 
 		$email_note = get_option( 'wrs_email_note', '' );
 
 		if ( empty( $email_note ) ) {
-			return;
+			$email_note = __( 'A return shipping fee has been deducted from your refund.', 'woo-return-shipping' );
 		}
 
+		$fee_label = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
+
 		if ( $plain_text ) {
-			echo "\n" . esc_html( $email_note ) . "\n";
+			echo "\n" . esc_html( $fee_label ) . ': ' . wc_price( $fee_amount ) . "\n";
+			echo esc_html( $email_note ) . "\n";
 		} else {
 			?>
 			<div class="wrs-refund-note" style="margin: 16px 0; padding: 12px; background-color: #f8f8f8; border-left: 4px solid #96588a;">
+				<p style="margin: 0 0 8px 0; font-weight: bold;">
+					<?php echo esc_html( $fee_label ); ?>: <?php echo wc_price( $fee_amount ); ?>
+				</p>
 				<p style="margin: 0;">
 					<?php echo esc_html( $email_note ); ?>
 				</p>
@@ -73,58 +80,67 @@ class WRS_Email {
 	}
 
 	/**
-	 * Ensure fee line item is displayed in order totals.
+	 * Get the latest refund for an order.
 	 *
-	 * WooCommerce should handle this automatically since we add the fee
-	 * as a proper WC_Order_Item_Fee, but this filter ensures it's visible.
-	 *
-	 * @param array    $total_rows Order total rows.
-	 * @param WC_Order $order      Order object.
-	 * @param mixed    $tax_display Tax display mode.
-	 * @return array
+	 * @param WC_Order $order Order object.
+	 * @return WC_Order_Refund|null
 	 */
-	public static function add_fee_to_totals( array $total_rows, $order, $tax_display ): array {
-		// Only modify for refund orders.
-		if ( ! $order instanceof WC_Order_Refund ) {
-			return $total_rows;
+	private static function get_latest_refund( $order ): ?WC_Order_Refund {
+		if ( $order instanceof WC_Order_Refund ) {
+			return $order;
 		}
 
-		// Check if we have a return fee.
-		$fee_amount = $order->get_meta( '_wrs_return_fee' );
-
-		if ( empty( $fee_amount ) ) {
-			return $total_rows;
+		if ( ! method_exists( $order, 'get_refunds' ) ) {
+			return null;
 		}
 
-		// The fee should already be in total_rows via the WC_Order_Item_Fee.
-		// This filter is a safety net in case it's not displayed.
+		$refunds = $order->get_refunds();
+
+		if ( empty( $refunds ) ) {
+			return null;
+		}
+
+		return $refunds[0]; // Most recent refund.
+	}
+
+	/**
+	 * Get return shipping fee amount from a refund.
+	 *
+	 * Checks both:
+	 * 1. Our custom metadata (_wrs_return_fee) - from old JS approach
+	 * 2. Fee line items with our _wrs_fee marker - from checkout fee approach
+	 *
+	 * @param WC_Order_Refund $refund Refund object.
+	 * @return float Fee amount.
+	 */
+	private static function get_return_fee_from_refund( WC_Order_Refund $refund ): float {
+		// First check our custom metadata.
+		$fee_amount = $refund->get_meta( '_wrs_return_fee' );
+		if ( ! empty( $fee_amount ) ) {
+			return floatval( $fee_amount );
+		}
+
+		// Next check fee line items for our marker.
 		$fee_label = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
-		$has_fee   = false;
 
-		foreach ( $total_rows as $key => $row ) {
-			if ( strpos( $key, 'fee' ) !== false ) {
-				$has_fee = true;
-				break;
+		foreach ( $refund->get_items( 'fee' ) as $item ) {
+			if ( ! $item instanceof WC_Order_Item_Fee ) {
+				continue;
 			}
-		}
 
-		// If fee not found, add it before the order total.
-		if ( ! $has_fee ) {
-			$new_total_rows = array();
+			// Check by our meta or by label match.
+			$is_our_fee = 'yes' === $item->get_meta( '_wrs_fee' );
+			$name_match = strpos( $item->get_name(), $fee_label ) !== false;
+			$name_match_reverse = strpos( $fee_label, $item->get_name() ) !== false;
 
-			foreach ( $total_rows as $key => $row ) {
-				if ( 'order_total' === $key ) {
-					$new_total_rows['wrs_return_fee'] = array(
-						'label' => $fee_label . ':',
-						'value' => wc_price( $fee_amount ),
-					);
+			if ( $is_our_fee || $name_match || $name_match_reverse ) {
+				$total = abs( floatval( $item->get_total() ) );
+				if ( $total > 0 ) {
+					return $total;
 				}
-				$new_total_rows[ $key ] = $row;
 			}
-
-			return $new_total_rows;
 		}
 
-		return $total_rows;
+		return 0.0;
 	}
 }
