@@ -2,11 +2,11 @@
 Contributors: Andrii Kaprii
 Tags: woocommerce, refund, return shipping, shipping fee, order management
 Requires at least: 6.0
-Tested up to: 6.4
+Tested up to: 6.9.1
 Requires PHP: 8.0
 WC requires at least: 8.0
-WC tested up to: 9.0
-Stable tag: 1.0.0
+WC tested up to: 10.5.2
+Stable tag: 2.6.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -81,6 +81,10 @@ Yes. Go to WooCommerce → Settings → Advanced → Return Shipping to customiz
 4. Customer refund email with fee
 
 == Changelog ==
+
+= 2.6.3 =
+* Update admin refund button labels to show net refund amount.
+* Update WordPress and WooCommerce tested versions.
 
 = 1.0.0 =
 * Initial release

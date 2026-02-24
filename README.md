@@ -3,7 +3,7 @@
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-8.0%2B-violet)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-blue)
 ![License](https://img.shields.io/badge/License-GPL--2.0-green)
-![Version](https://img.shields.io/badge/Version-2.6.0-orange)
+![Version](https://img.shields.io/badge/Version-2.6.3-orange)
 
 Deduct return shipping fees from WooCommerce refunds. Specifically designed to handle "restocking fees" or "return shipping labels" that need to be deducted from the refund amount but should not appear on the original order.
 
