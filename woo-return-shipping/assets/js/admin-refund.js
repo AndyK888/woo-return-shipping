@@ -177,6 +177,119 @@
 
             $('#wrs_gross').text('$' + gross.toFixed(2));
             $('#wrs_net').text('$' + net.toFixed(2));
+            this.updateButtonLabels(gross, net, applyFee, fee);
+        },
+
+        updateButtonLabels: function (gross, net, applyFee, fee) {
+            var shouldApply = applyFee && fee > 0;
+            var $buttons = $('.refund-actions .button, .refund-actions button, .refund-actions a.button');
+
+            if (!$buttons.length) {
+                return;
+            }
+
+            var formattedNet = this.formatMoney(net);
+            var formattedNetNumber = this.formatNumber(net);
+            var self = this;
+
+            $buttons.each(function () {
+                var $button = $(this);
+                var currentLabel = $button.text();
+                var originalLabel = $button.data('wrs-original-label');
+                var lastNetLabel = $button.data('wrs-net-label');
+
+                if (!currentLabel) {
+                    return;
+                }
+
+                if (!originalLabel || (lastNetLabel && currentLabel !== lastNetLabel && currentLabel !== originalLabel)) {
+                    originalLabel = currentLabel;
+                    $button.data('wrs-original-label', originalLabel);
+                }
+
+                if (!shouldApply) {
+                    if (originalLabel) {
+                        $button.text(originalLabel);
+                    }
+                    $button.removeData('wrs-net-label');
+                    return;
+                }
+
+                var updatedLabel = self.replaceAmountInLabel(originalLabel, formattedNet, formattedNetNumber);
+
+                if (updatedLabel && updatedLabel !== currentLabel) {
+                    $button.text(updatedLabel);
+                    $button.data('wrs-net-label', updatedLabel);
+                }
+            });
+        },
+
+        getCurrencyFormat: function () {
+            var meta = window.woocommerce_admin_meta_boxes || {};
+            var precision = parseInt(meta.currency_format_num_decimals || 2, 10);
+
+            return {
+                symbol: meta.currency_format_symbol || '$',
+                decimal: meta.currency_format_decimal_sep || '.',
+                thousand: meta.currency_format_thousand_sep || ',',
+                precision: isNaN(precision) ? 2 : precision,
+                format: meta.currency_format || '%s%v'
+            };
+        },
+
+        formatMoney: function (amount) {
+            var currency = this.getCurrencyFormat();
+
+            if (window.accounting && typeof window.accounting.formatMoney === 'function') {
+                return window.accounting.formatMoney(amount, currency);
+            }
+
+            var fixed = amount.toFixed(currency.precision);
+            if (currency.format.indexOf('%s') !== -1 && currency.format.indexOf('%v') !== -1) {
+                return currency.format.replace('%s', currency.symbol).replace('%v', fixed);
+            }
+
+            return currency.symbol + fixed;
+        },
+
+        formatNumber: function (amount) {
+            var currency = this.getCurrencyFormat();
+
+            if (window.accounting && typeof window.accounting.formatNumber === 'function') {
+                return window.accounting.formatNumber(amount, currency.precision, currency.thousand, currency.decimal);
+            }
+
+            return amount.toFixed(currency.precision);
+        },
+
+        replaceAmountInLabel: function (label, formattedMoney, formattedNumber) {
+            if (!label) {
+                return label;
+            }
+
+            var currency = this.getCurrencyFormat();
+            var escapedSymbol = currency.symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var escapedDecimal = currency.decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var escapedThousand = currency.thousand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var amountPattern = '[0-9]+(?:' + escapedThousand + '[0-9]{3})*(?:' + escapedDecimal + '[0-9]{2})?';
+
+            var symbolBefore = new RegExp(escapedSymbol + '\\s*' + amountPattern);
+            var symbolAfter = new RegExp(amountPattern + '\\s*' + escapedSymbol);
+
+            if (symbolBefore.test(label)) {
+                return label.replace(symbolBefore, formattedMoney);
+            }
+
+            if (symbolAfter.test(label)) {
+                return label.replace(symbolAfter, formattedMoney);
+            }
+
+            var numberOnly = new RegExp(amountPattern);
+            if (numberOnly.test(label)) {
+                return label.replace(numberOnly, formattedNumber);
+            }
+
+            return label;
         },
 
         escapeHtml: function (str) {
