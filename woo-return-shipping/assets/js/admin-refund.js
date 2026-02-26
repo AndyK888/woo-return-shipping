@@ -188,47 +188,38 @@
                 return;
             }
 
-            var formattedNet = this.formatMoney(net);
-            var formattedNetNumber = this.formatNumber(net);
             var self = this;
+            var targetAmount = shouldApply ? net : gross;
+            var formattedAmount = this.formatMoney(targetAmount);
+            var formattedNumber = this.formatNumber(targetAmount);
 
             $buttons.each(function () {
                 var $button = $(this);
                 var currentLabel = $button.text();
-                var originalLabel = $button.data('wrs-original-label');
-                var lastNetLabel = $button.data('wrs-net-label');
-                var isShowingNetLabel = lastNetLabel && currentLabel === lastNetLabel;
+                var templateLabel = $button.data('wrs-label-template');
+                var lastWrittenLabel = $button.data('wrs-last-written-label');
 
                 if (!currentLabel) {
                     return;
                 }
 
-                if (!shouldApply) {
-                    // Only restore when we know the current label was written by WRS.
-                    if (isShowingNetLabel && originalLabel) {
-                        $button.text(originalLabel);
-                        currentLabel = originalLabel;
-                    }
-
-                    // Keep baseline synced with WooCommerce's live amount updates.
-                    $button.data('wrs-original-label', currentLabel);
-                    $button.removeData('wrs-net-label');
-                    return;
+                // If WooCommerce changed label text externally, refresh our template source.
+                if (!templateLabel || (lastWrittenLabel && currentLabel !== lastWrittenLabel)) {
+                    templateLabel = currentLabel;
+                    $button.data('wrs-label-template', templateLabel);
                 }
 
-                // If WooCommerce updated the gross label, use that as the replacement source.
-                var sourceLabel = isShowingNetLabel && originalLabel ? originalLabel : currentLabel;
-                $button.data('wrs-original-label', sourceLabel);
+                var updatedLabel = self.replaceAmountInLabel(templateLabel, formattedAmount, formattedNumber);
 
-                var updatedLabel = self.replaceAmountInLabel(sourceLabel, formattedNet, formattedNetNumber);
+                if (!updatedLabel) {
+                    return;
+                }
 
                 if (updatedLabel && updatedLabel !== currentLabel) {
                     $button.text(updatedLabel);
                 }
 
-                if (updatedLabel) {
-                    $button.data('wrs-net-label', updatedLabel);
-                }
+                $button.data('wrs-last-written-label', updatedLabel);
             });
         },
 

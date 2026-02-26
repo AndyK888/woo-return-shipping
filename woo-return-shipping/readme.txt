@@ -6,7 +6,7 @@ Tested up to: 6.9.1
 Requires PHP: 8.0
 WC requires at least: 8.0
 WC tested up to: 10.5.2
-Stable tag: 2.6.3
+Stable tag: 2.6.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -81,6 +81,10 @@ Yes. Go to WooCommerce → Settings → Advanced → Return Shipping to customiz
 4. Customer refund email with fee
 
 == Changelog ==
+
+= 2.6.4 =
+* Fix admin refund buttons showing stale $0.00 labels during full refunds.
+* Keep button labels synced with WooCommerce refund amount recalculations.
 
 = 2.6.3 =
 * Update admin refund button labels to show net refund amount.
