@@ -197,28 +197,36 @@
                 var currentLabel = $button.text();
                 var originalLabel = $button.data('wrs-original-label');
                 var lastNetLabel = $button.data('wrs-net-label');
+                var isShowingNetLabel = lastNetLabel && currentLabel === lastNetLabel;
 
                 if (!currentLabel) {
                     return;
                 }
 
-                if (!originalLabel || (lastNetLabel && currentLabel !== lastNetLabel && currentLabel !== originalLabel)) {
-                    originalLabel = currentLabel;
-                    $button.data('wrs-original-label', originalLabel);
-                }
-
                 if (!shouldApply) {
-                    if (originalLabel) {
+                    // Only restore when we know the current label was written by WRS.
+                    if (isShowingNetLabel && originalLabel) {
                         $button.text(originalLabel);
+                        currentLabel = originalLabel;
                     }
+
+                    // Keep baseline synced with WooCommerce's live amount updates.
+                    $button.data('wrs-original-label', currentLabel);
                     $button.removeData('wrs-net-label');
                     return;
                 }
 
-                var updatedLabel = self.replaceAmountInLabel(originalLabel, formattedNet, formattedNetNumber);
+                // If WooCommerce updated the gross label, use that as the replacement source.
+                var sourceLabel = isShowingNetLabel && originalLabel ? originalLabel : currentLabel;
+                $button.data('wrs-original-label', sourceLabel);
+
+                var updatedLabel = self.replaceAmountInLabel(sourceLabel, formattedNet, formattedNetNumber);
 
                 if (updatedLabel && updatedLabel !== currentLabel) {
                     $button.text(updatedLabel);
+                }
+
+                if (updatedLabel) {
                     $button.data('wrs-net-label', updatedLabel);
                 }
             });
