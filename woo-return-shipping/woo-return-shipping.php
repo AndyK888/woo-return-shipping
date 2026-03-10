@@ -104,14 +104,23 @@ function wrs_activate(): void {
 	if ( false === get_option( 'wrs_default_fee' ) ) {
 		add_option( 'wrs_default_fee', '10.00' );
 	}
+	if ( false === get_option( 'wrs_box_damage_default_fee' ) ) {
+		add_option( 'wrs_box_damage_default_fee', '0.00' );
+	}
 	if ( false === get_option( 'wrs_fee_label' ) ) {
 		add_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
+	}
+	if ( false === get_option( 'wrs_box_damage_label' ) ) {
+		add_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
 	}
 	if ( false === get_option( 'wrs_tax_status' ) ) {
 		add_option( 'wrs_tax_status', 'none' );
 	}
 	if ( false === get_option( 'wrs_email_note' ) ) {
 		add_option( 'wrs_email_note', __( 'A return shipping fee has been deducted from your refund.', 'woo-return-shipping' ) );
+	}
+	if ( false === get_option( 'wrs_box_damage_email_note' ) ) {
+		add_option( 'wrs_box_damage_email_note', __( 'A retail box damage fee has been deducted from your refund.', 'woo-return-shipping' ) );
 	}
 	if ( false === get_option( 'wrs_show_reason_field' ) ) {
 		add_option( 'wrs_show_reason_field', 'no' );

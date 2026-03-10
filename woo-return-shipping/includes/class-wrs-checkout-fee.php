@@ -19,9 +19,10 @@ defined( 'ABSPATH' ) || exit;
 class WRS_Checkout_Fee {
 
 	/**
-	 * The fee name identifier (used to detect our fee).
+	 * Plugin-managed hidden fee types.
 	 */
-	const FEE_IDENTIFIER = 'wrs_return_shipping_fee';
+	const RETURN_SHIPPING_FEE_TYPE = 'return_shipping';
+	const BOX_DAMAGE_FEE_TYPE      = 'retail_box_damage';
 
 	/**
 	 * Initialize checkout hooks.
@@ -45,16 +46,18 @@ class WRS_Checkout_Fee {
 			return;
 		}
 
-		$fee_label = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
-
-		$fee_item = new WC_Order_Item_Fee();
-		$fee_item->set_name( $fee_label );
-		$fee_item->set_amount( 0 );
-		$fee_item->set_total( 0 );
-		$fee_item->set_tax_status( 'none' );
-		$fee_item->add_meta_data( '_wrs_fee', 'yes', true );
-
-		$order->add_item( $fee_item );
+		$order->add_item(
+			self::create_hidden_fee_item(
+				get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+				self::RETURN_SHIPPING_FEE_TYPE
+			)
+		);
+		$order->add_item(
+			self::create_hidden_fee_item(
+				get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
+				self::BOX_DAMAGE_FEE_TYPE
+			)
+		);
 		$order->save();
 	}
 
@@ -75,17 +78,42 @@ class WRS_Checkout_Fee {
 			return $total_rows;
 		}
 
-		$fee_label = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
+		$hidden_fee_labels = array(
+			get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+			get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
+		);
 
 		foreach ( $total_rows as $key => $row ) {
 			if ( strpos( $key, 'fee' ) !== false && isset( $row['label'] ) ) {
-				if ( strpos( $row['label'], $fee_label ) !== false || strpos( $row['value'], '$0.00' ) !== false ) {
-					unset( $total_rows[ $key ] );
+				foreach ( $hidden_fee_labels as $hidden_fee_label ) {
+					if ( false !== strpos( $row['label'], $hidden_fee_label ) ) {
+						unset( $total_rows[ $key ] );
+						break;
+					}
 				}
 			}
 		}
 
 		return $total_rows;
+	}
+
+	/**
+	 * Create a hidden fee item for later refund deductions.
+	 *
+	 * @param string $label    Fee label.
+	 * @param string $fee_type Managed fee type.
+	 * @return WC_Order_Item_Fee
+	 */
+	private static function create_hidden_fee_item( string $label, string $fee_type ): WC_Order_Item_Fee {
+		$fee_item = new WC_Order_Item_Fee();
+		$fee_item->set_name( $label );
+		$fee_item->set_amount( 0 );
+		$fee_item->set_total( 0 );
+		$fee_item->set_tax_status( 'none' );
+		$fee_item->add_meta_data( '_wrs_fee', 'yes', true );
+		$fee_item->add_meta_data( '_wrs_fee_type', $fee_type, true );
+
+		return $fee_item;
 	}
 
 	/**
@@ -115,10 +143,8 @@ class WRS_Checkout_Fee {
 		}
 
 		foreach ( $items as $item_id => $item ) {
-			if ( $item instanceof WC_Order_Item_Fee ) {
-				if ( 'yes' === $item->get_meta( '_wrs_fee' ) ) {
-					unset( $items[ $item_id ] );
-				}
+			if ( $item instanceof WC_Order_Item_Fee && self::is_our_fee( $item ) ) {
+				unset( $items[ $item_id ] );
 			}
 		}
 
@@ -126,12 +152,18 @@ class WRS_Checkout_Fee {
 	}
 
 	/**
-	 * Check if a fee item is our return shipping fee.
+	 * Check if a fee item is our managed hidden fee.
 	 *
 	 * @param WC_Order_Item_Fee $item Fee item.
 	 * @return bool
 	 */
 	public static function is_our_fee( WC_Order_Item_Fee $item ): bool {
+		$fee_type = $item->get_meta( '_wrs_fee_type' );
+
+		if ( in_array( $fee_type, array( self::RETURN_SHIPPING_FEE_TYPE, self::BOX_DAMAGE_FEE_TYPE ), true ) ) {
+			return true;
+		}
+
 		return 'yes' === $item->get_meta( '_wrs_fee' );
 	}
 }

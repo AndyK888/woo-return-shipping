@@ -78,6 +78,28 @@ class WRS_Settings {
 			),
 
 			array(
+				'title'             => __( 'Retail Box Damage Default Fee', 'woo-return-shipping' ),
+				'desc'              => __( 'The default retail box damage fee to deduct from refunds.', 'woo-return-shipping' ),
+				'id'                => 'wrs_box_damage_default_fee',
+				'type'              => 'number',
+				'default'           => '0.00',
+				'css'               => 'width: 100px;',
+				'custom_attributes' => array(
+					'step' => '0.01',
+					'min'  => '0',
+				),
+			),
+
+			array(
+				'title'   => __( 'Retail Box Damage Label', 'woo-return-shipping' ),
+				'desc'    => __( 'The label shown on refund receipts and emails for the retail box damage fee.', 'woo-return-shipping' ),
+				'id'      => 'wrs_box_damage_label',
+				'type'    => 'text',
+				'default' => __( 'Retail Box Damage', 'woo-return-shipping' ),
+				'css'     => 'width: 250px;',
+			),
+
+			array(
 				'title'   => __( 'Tax Status', 'woo-return-shipping' ),
 				'desc'    => __( 'Whether the return shipping fee is taxable.', 'woo-return-shipping' ),
 				'id'      => 'wrs_tax_status',
@@ -124,6 +146,15 @@ class WRS_Settings {
 				'id'      => 'wrs_email_note',
 				'type'    => 'textarea',
 				'default' => __( 'A return shipping fee has been deducted from your refund.', 'woo-return-shipping' ),
+				'css'     => 'width: 400px; height: 80px;',
+			),
+
+			array(
+				'title'   => __( 'Retail Box Damage Email Note', 'woo-return-shipping' ),
+				'desc'    => __( 'Optional note to include in refund emails explaining the retail box damage deduction.', 'woo-return-shipping' ),
+				'id'      => 'wrs_box_damage_email_note',
+				'type'    => 'textarea',
+				'default' => __( 'A retail box damage fee has been deducted from your refund.', 'woo-return-shipping' ),
 				'css'     => 'width: 400px; height: 80px;',
 			),
 

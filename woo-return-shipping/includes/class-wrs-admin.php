@@ -70,8 +70,10 @@ class WRS_Admin {
 			'wrs-admin',
 			'wrsConfig',
 			array(
-				'defaultFee' => floatval( get_option( 'wrs_default_fee', '10.00' ) ),
-				'feeLabel'   => get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+				'defaultFee'          => floatval( get_option( 'wrs_default_fee', '10.00' ) ),
+				'feeLabel'            => get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+				'boxDamageDefaultFee' => floatval( get_option( 'wrs_box_damage_default_fee', '0.00' ) ),
+				'boxDamageLabel'      => get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
 			)
 		);
 	}
