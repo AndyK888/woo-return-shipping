@@ -6,15 +6,15 @@ Tested up to: 6.9.1
 Requires PHP: 8.0
 WC requires at least: 8.0
 WC tested up to: 10.5.2
-Stable tag: 2.6.4
+Stable tag: 2.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Deduct return shipping fees from WooCommerce refunds. The fee appears only on the refund receipt, not the original order.
+Deduct return shipping and retail box damage fees from WooCommerce refunds. Deductions appear only on the refund receipt, not the original order.
 
 == Description ==
 
-**WooCommerce Return Shipping Deduction** allows store admins to deduct a return shipping fee from refunds. The fee:
+**WooCommerce Return Shipping Deduction** allows store admins to deduct return shipping and retail box damage fees from refunds. The deductions:
 
 * **Does NOT appear** on the original order
 * **DOES appear** as a line item on the refund
@@ -23,33 +23,34 @@ Deduct return shipping fees from WooCommerce refunds. The fee appears only on th
 
 = Key Features =
 
-* **Simple Admin UI** - Fee input field appears in the native WooCommerce refund modal
-* **Configurable Defaults** - Set default fee amount, label, and tax status
-* **Exempt Option** - Skip the fee for customers who pre-paid return shipping
-* **Email Integration** - Fee appears in customer refund emails with optional note
+* **Simple Admin UI** - Separate deduction fields appear in the native WooCommerce refund modal
+* **Configurable Defaults** - Set default amounts, labels, and email notes
+* **Separate Deduction Types** - Return shipping and retail box damage stay independent on refunds
+* **Email Integration** - Each deduction appears separately in customer refund emails with its own note
 * **Gateway Compatible** - Works with Stripe, PayPal, and other WooCommerce payment gateways
 * **HPOS Compatible** - Full support for WooCommerce High-Performance Order Storage
 
 = How It Works =
 
 1. Process a refund as normal in WooCommerce
-2. Enter the return shipping fee amount (or use the default)
-3. The fee is added as a positive line item to the refund
-4. Customer receives refund minus the fee
+2. Enter the return shipping fee amount, retail box damage fee, or both
+3. Each deduction is added as a separate positive line item to the refund
+4. Customer receives refund minus the combined deductions
 5. Payment gateway processes the net amount
 
 = Example =
 
 * Product refund: $179.95
 * Return shipping fee: $10.00
-* Customer receives: $169.95
+* Retail box damage fee: $5.00
+* Customer receives: $164.95
 
 == Installation ==
 
 1. Upload the `woo-return-shipping` folder to `/wp-content/plugins/`
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Go to WooCommerce → Settings → Advanced → Return Shipping to configure
-4. Process refunds as normal - the fee input will appear in the refund modal
+4. Process refunds as normal - the deduction inputs will appear in the refund modal
 
 == Frequently Asked Questions ==
 
@@ -61,17 +62,17 @@ No. The fee only exists on the refund object. The original order remains unchang
 
 The plugin works with any WooCommerce-compatible gateway that supports refunds. It has been specifically tested with Stripe and PayPal official plugins.
 
-= Can I exempt certain refunds from the fee? =
+= Can I apply more than one deduction on the same refund? =
 
-Yes. Each refund has an "Exempt from return fee" checkbox for customers who pre-paid their return shipping.
+Yes. Return shipping and retail box damage can both be applied on the same refund and are shown separately.
 
 = Is it compatible with HPOS? =
 
 Yes. The plugin is fully compatible with WooCommerce High-Performance Order Storage.
 
-= Can I customize the fee label in emails? =
+= Can I customize the deduction labels in emails? =
 
-Yes. Go to WooCommerce → Settings → Advanced → Return Shipping to customize the fee label and email note.
+Yes. Go to WooCommerce → Settings → Advanced → Return Shipping to customize both labels and email notes.
 
 == Screenshots ==
 
@@ -81,6 +82,11 @@ Yes. Go to WooCommerce → Settings → Advanced → Return Shipping to customiz
 4. Customer refund email with fee
 
 == Changelog ==
+
+= 2.7.0 =
+* Add Retail Box Damage as a second refund deduction.
+* Add a second hidden $0 order line for Retail Box Damage.
+* Show Return Shipping and Retail Box Damage separately in refund emails.
 
 = 2.6.4 =
 * Fix admin refund buttons showing stale $0.00 labels during full refunds.

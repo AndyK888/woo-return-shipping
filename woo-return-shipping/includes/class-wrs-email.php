@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Class WRS_Email
  *
- * Ensures the return shipping fee is visible in refund emails.
+ * Ensures refund deductions are visible in refund emails.
  */
 class WRS_Email {
 
@@ -25,7 +25,7 @@ class WRS_Email {
 	}
 
 	/**
-	 * Add return shipping fee note to refund emails.
+	 * Add deduction notes to refund emails.
 	 *
 	 * @param WC_Order|WC_Order_Refund $order         Order object.
 	 * @param bool                      $sent_to_admin Whether email is for admin.
@@ -48,34 +48,18 @@ class WRS_Email {
 			return;
 		}
 
-		$fee_amount = self::get_return_fee_from_refund( $refund );
-
-		if ( $fee_amount <= 0 ) {
+		$deductions = self::get_refund_deductions( $refund );
+		if ( empty( $deductions ) ) {
 			return;
 		}
 
-		$email_note = get_option( 'wrs_email_note', '' );
-
-		if ( empty( $email_note ) ) {
-			$email_note = __( 'A return shipping fee has been deducted from your refund.', 'woo-return-shipping' );
-		}
-
-		$fee_label = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
-
-		if ( $plain_text ) {
-			echo "\n" . esc_html( $fee_label ) . ': ' . wp_strip_all_tags( wc_price( $fee_amount ) ) . "\n";
-			echo esc_html( $email_note ) . "\n";
-		} else {
-			?>
-			<div class="wrs-refund-note" style="margin: 16px 0; padding: 12px; background-color: #fff3cd; border-left: 4px solid #ffc107;">
-				<p style="margin: 0 0 8px 0; font-weight: bold; color: #856404;">
-					<?php echo esc_html( $fee_label ); ?>: <?php echo wc_price( $fee_amount ); ?>
-				</p>
-				<p style="margin: 0; color: #856404;">
-					<?php echo esc_html( $email_note ); ?>
-				</p>
-			</div>
-			<?php
+		foreach ( $deductions as $deduction ) {
+			self::render_fee_note(
+				$plain_text,
+				$deduction['label'],
+				$deduction['amount'],
+				$deduction['note']
+			);
 		}
 	}
 
@@ -104,18 +88,70 @@ class WRS_Email {
 	}
 
 	/**
-	 * Get return shipping fee amount from a refund.
+	 * Get all supported refund deductions from a refund.
 	 *
 	 * @param WC_Order_Refund $refund Refund object.
-	 * @return float Fee amount.
+	 * @return array<int, array{label: string, amount: float, note: string}>
 	 */
-	private static function get_return_fee_from_refund( WC_Order_Refund $refund ): float {
-		$fee_amount = $refund->get_meta( '_wrs_return_fee' );
+	private static function get_refund_deductions( WC_Order_Refund $refund ): array {
+		$deduction_definitions = array(
+			array(
+				'meta_key'     => '_wrs_return_fee',
+				'label_option' => 'wrs_fee_label',
+				'default'      => __( 'Return Shipping', 'woo-return-shipping' ),
+				'note_option'  => 'wrs_email_note',
+				'note_default' => __( 'A return shipping fee has been deducted from your refund.', 'woo-return-shipping' ),
+				'fee_type'     => 'return_shipping',
+			),
+			array(
+				'meta_key'     => '_wrs_box_damage_fee',
+				'label_option' => 'wrs_box_damage_label',
+				'default'      => __( 'Retail Box Damage', 'woo-return-shipping' ),
+				'note_option'  => 'wrs_box_damage_email_note',
+				'note_default' => __( 'A retail box damage fee has been deducted from your refund.', 'woo-return-shipping' ),
+				'fee_type'     => 'retail_box_damage',
+			),
+		);
+
+		$deductions = array();
+
+		foreach ( $deduction_definitions as $definition ) {
+			$label = get_option( $definition['label_option'], $definition['default'] );
+			$amount = self::get_refund_fee_amount(
+				$refund,
+				$definition['meta_key'],
+				$label,
+				$definition['fee_type']
+			);
+
+			if ( $amount <= 0 ) {
+				continue;
+			}
+
+			$deductions[] = array(
+				'label'  => $label,
+				'amount' => $amount,
+				'note'   => get_option( $definition['note_option'], $definition['note_default'] ),
+			);
+		}
+
+		return $deductions;
+	}
+
+	/**
+	 * Get a refund fee amount from meta or fee items.
+	 *
+	 * @param WC_Order_Refund $refund   Refund object.
+	 * @param string          $meta_key Refund meta key.
+	 * @param string          $label    Fee label.
+	 * @param string          $fee_type Managed fee type.
+	 * @return float
+	 */
+	private static function get_refund_fee_amount( WC_Order_Refund $refund, string $meta_key, string $label, string $fee_type ): float {
+		$fee_amount = $refund->get_meta( $meta_key );
 		if ( ! empty( $fee_amount ) ) {
 			return floatval( $fee_amount );
 		}
-
-		$fee_label = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
 
 		foreach ( $refund->get_items( 'fee' ) as $item ) {
 			if ( ! $item instanceof WC_Order_Item_Fee ) {
@@ -123,9 +159,9 @@ class WRS_Email {
 			}
 
 			$item_name = $item->get_name();
-			$is_our_fee = 'yes' === $item->get_meta( '_wrs_fee' );
-			$name_match = stripos( $item_name, $fee_label ) !== false;
-			$name_match_reverse = stripos( $fee_label, $item_name ) !== false;
+			$is_our_fee = $fee_type === $item->get_meta( '_wrs_fee_type' );
+			$name_match = stripos( $item_name, $label ) !== false;
+			$name_match_reverse = stripos( $label, $item_name ) !== false;
 
 			if ( $is_our_fee || $name_match || $name_match_reverse ) {
 				$total = abs( floatval( $item->get_total() ) );
@@ -136,5 +172,31 @@ class WRS_Email {
 		}
 
 		return 0.0;
+	}
+
+	/**
+	 * Render a deduction note in the appropriate email format.
+	 *
+	 * @param bool   $plain_text Whether email is plain text.
+	 * @param string $label      Deduction label.
+	 * @param float  $amount     Deduction amount.
+	 * @param string $note       Deduction note.
+	 */
+	private static function render_fee_note( bool $plain_text, string $label, float $amount, string $note ): void {
+		if ( $plain_text ) {
+			echo "\n" . esc_html( $label ) . ': ' . wp_strip_all_tags( wc_price( $amount ) ) . "\n";
+			echo esc_html( $note ) . "\n";
+			return;
+		}
+		?>
+		<div class="wrs-refund-note" style="margin: 16px 0; padding: 12px; background-color: #fff3cd; border-left: 4px solid #ffc107;">
+			<p style="margin: 0 0 8px 0; font-weight: bold; color: #856404;">
+				<?php echo esc_html( $label ); ?>: <?php echo wc_price( $amount ); ?>
+			</p>
+			<p style="margin: 0; color: #856404;">
+				<?php echo esc_html( $note ); ?>
+			</p>
+		</div>
+		<?php
 	}
 }

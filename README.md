@@ -3,15 +3,16 @@
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-8.0%2B-violet)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-blue)
 ![License](https://img.shields.io/badge/License-GPL--2.0-green)
-![Version](https://img.shields.io/badge/Version-2.6.4-orange)
+![Version](https://img.shields.io/badge/Version-2.7.0-orange)
 
-Deduct return shipping fees from WooCommerce refunds. Specifically designed to handle "restocking fees" or "return shipping labels" that need to be deducted from the refund amount but should not appear on the original order.
+Deduct return shipping and retail box damage fees from WooCommerce refunds. Specifically designed for policy-based deductions that must reduce the refund amount without appearing on the original order.
 
 ## 🌟 Key Features
 
 *   **Native Fee Approach** - Adds a hidden $0 fee to orders that becomes visible during refunds.
 *   **Simple Admin UI** - Standard WooCommerce refund interface usage.
-*   **Configurable** - Set default fees, custom labels, and email notes.
+*   **Configurable** - Set default amounts, custom labels, and email notes.
+*   **Separate Deduction Types** - Return shipping and retail box damage stay independent in admin and emails.
 *   **Gateway Compatible** - Net refund amount is calculated natively and sent to Stripe, PayPal, etc.
 *   **Hidden from Customers** - Fee does not appear during checkout, on invoices, or in My Account.
 *   **Visible on Refunds** - Fee appears clearly on refund receipts and emails.
@@ -19,12 +20,12 @@ Deduct return shipping fees from WooCommerce refunds. Specifically designed to h
 
 ## 🚀 How It Works
 
-1.  **Order Placement**: A hidden "Return Shipping" fee ($0) is added to every new order.
+1.  **Order Placement**: Hidden `$0` lines for `Return Shipping` and `Retail Box Damage` are added to every new order.
 2.  **Refund Process**: When processing a refund in Admin:
-    *   Locate the "Return Shipping" fee line item.
-    *   Enter the deduction amount (e.g., $10.00).
-    *   WooCommerce automatically subtracts this from the refund total.
-3.  **Customer Experience**: The customer receives the net refund. The refund email shows the deduction line item.
+    *   Enter the return shipping fee amount, retail box damage fee, or both.
+    *   The plugin subtracts the combined deductions from the gateway refund amount.
+    *   Each deduction appears as its own refund fee line item.
+3.  **Customer Experience**: The customer receives the net refund. The refund email shows each deduction separately.
 
 ## 🛠️ Installation
 
@@ -35,9 +36,9 @@ Deduct return shipping fees from WooCommerce refunds. Specifically designed to h
 
 ## ⚙️ Configuration
 
-*   **Default Fee**: The amount pre-filled in the refund field (default: 10.00).
-*   **Fee Label**: The text shown for the fee (default: "Return Shipping").
-*   **Email Note**: Custom text added to refund emails (e.g., "A return shipping fee was deducted").
+*   **Return Shipping Default Fee**: The amount pre-filled in the refund field for return shipping.
+*   **Retail Box Damage Default Fee**: The amount pre-filled in the refund field for retail box damage.
+*   **Labels and Email Notes**: Separate labels and notes for each deduction type.
 *   **Tax Status**: Whether the fee is taxable.
 
 ## 📦 Compatibility
@@ -48,6 +49,11 @@ Deduct return shipping fees from WooCommerce refunds. Specifically designed to h
 *   **Gateways**: Stripe, PayPal, and standard gateways.
 
 ## 📝 Changelog
+
+### 2.7.0
+*   **Feature**: Added Retail Box Damage as a second refund deduction.
+*   **Feature**: Added a second hidden $0 order line for Retail Box Damage.
+*   **Feature**: Refund emails now show each deduction separately.
 
 ### 2.6.2
 *   **Maintenance**: Cleaned up repository (removed excluded files).
