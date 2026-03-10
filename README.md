@@ -13,6 +13,7 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Spec
 *   **Simple Admin UI** - Standard WooCommerce refund interface usage.
 *   **Configurable** - Set default amounts, custom labels, and email notes.
 *   **Separate Deduction Types** - Return shipping and retail box damage stay independent in admin and emails.
+*   **Validation Guardrails** - Invalid combined deductions are blocked in the admin panel and on the server.
 *   **Gateway Compatible** - Net refund amount is calculated natively and sent to Stripe, PayPal, etc.
 *   **Hidden from Customers** - Fee does not appear during checkout, on invoices, or in My Account.
 *   **Visible on Refunds** - Fee appears clearly on refund receipts and emails.
@@ -48,6 +49,12 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Spec
 *   **Validated Against**: WordPress 6.9.1 and WooCommerce 10.5.1.
 *   **Checkouts**: Classic and Block Checkout compatible.
 *   **Gateways**: Stripe, PayPal, and standard gateways.
+
+## 🧪 Tests
+
+*   **PHP**: `composer test`
+*   **Browser**: `npm run test:e2e`
+*   **Scope**: deduction validation, refund mutation, email deduction collection, and admin refund UI regression coverage
 
 ## 📝 Changelog
 

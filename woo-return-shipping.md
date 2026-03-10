@@ -1,258 +1,161 @@
-# WooCommerce Return Shipping Deduction Plugin
-
-> **Project Type:** WordPress/WooCommerce Plugin  
-> **Codename:** "The Anti-Gravity Fee"
+# WooCommerce Return Shipping Deduction
 
 ## Overview
 
-Allow store admins to deduct a return shipping fee from refunds. The fee appears **only on the refund receipt**, never on the original order. The net refund amount is correctly passed to payment gateways.
+This plugin deducts policy-based charges from WooCommerce refunds without exposing those charges on the original customer order. It currently supports two independent deduction types:
 
-### Success Criteria
+- `Return Shipping`
+- `Retail Box Damage`
 
-| Criteria | Measurement |
-|----------|-------------|
-| Fee invisible on original order | Order detail shows no extra line items |
-| Fee visible on refund | Refund object contains `fee_line` with positive value |
-| Correct gateway amount | Gateway receives `(refund_total - fee)` |
-| Settings configurable | Admin can set defaults, labels, tax, email text |
-| Gateway compatible | Works with Stripe Official, PayPal Official |
-| HPOS compatible | Uses WooCommerce CRUD methods, no direct DB queries |
+The customer sees the net refund amount. WooCommerce payment gateways receive the net refund amount. Each deduction is shown separately on the refund and in refund emails.
 
----
+## Current Behavior
 
-## Tech Stack
+### Order placement
 
-| Component | Technology | Rationale |
-|-----------|------------|-----------|
-| Language | PHP 8.0+ | Modern PHP, WC 8.x requirement |
-| Framework | WordPress Plugin API | Native integration |
-| Data Storage | WooCommerce Order Meta | HPOS-compatible via CRUD |
-| Admin UI | Native WC + Vanilla JS | No external dependencies |
-| Settings | WooCommerce Settings API | Native integration |
+- New orders receive two hidden `$0.00` fee items:
+- `Return Shipping`
+- `Retail Box Damage`
+- These fee items are hidden from storefront checkout, customer order totals, and standard order emails.
+- The hidden fee items remain available in admin order/refund flows as anchors for later deductions.
 
----
+### Refund processing
 
-## File Structure
+- The admin refund panel shows separate controls for both deduction types.
+- Admins can apply either deduction alone or both together.
+- The refund summary shows:
+- gross refund
+- total deductions
+- net to customer
+- Refund action buttons display the net amount when deductions are valid.
+- If combined deductions exceed the gross refund amount, the refund is blocked:
+- client-side with an inline error
+- server-side with a WooCommerce-compatible error response
 
-```
-woo-return-shipping/
-├── woo-return-shipping.php          # Main plugin file
-├── includes/
-│   ├── class-wrs-settings.php       # Settings page handler
-│   ├── class-wrs-admin.php          # Admin UI (refund modal)
-│   ├── class-wrs-refund-handler.php # Core refund logic
-│   ├── class-wrs-email.php          # Email template modifications
-│   └── class-wrs-gateway-compat.php # Gateway compatibility layer
-├── assets/
-│   ├── js/
-│   │   └── admin-refund.js          # Refund modal JS
-│   └── css/
-│       └── admin.css                # Admin styles
-├── languages/
-│   └── woo-return-shipping.pot      # Translation template
-└── readme.txt                       # WordPress.org readme
-```
+### Refund persistence
 
----
+- During `woocommerce_create_refund`, the plugin validates posted deduction values.
+- The plugin reduces the refund object amount before WooCommerce sends the refund to the gateway.
+- Separate refund fee line items are added for each applied deduction.
+- Refund metadata stores:
+- original refund amount
+- return shipping fee
+- retail box damage fee
+- net refund amount
 
-## Task Breakdown
+### Email behavior
 
-### Phase 1: Foundation
+- Refund emails render `Return Shipping` and `Retail Box Damage` separately.
+- Each deduction uses its own label and configurable note.
+- Deduction amounts are resolved from refund meta first, then from refund fee items if needed.
 
-#### Task 1.1: Plugin Bootstrap
-- **Agent:** `backend-specialist`
-- **INPUT:** Plugin requirements, WC version constraints
-- **OUTPUT:** `woo-return-shipping.php` with:
-  - Plugin header (Name, Version, WC requires, HPOS declaration)
-  - Activation/deactivation hooks
-  - Autoloader for `includes/` classes
-  - WooCommerce dependency check
-- **VERIFY:** Plugin activates without errors, appears in WP Plugins list
+## Architecture
 
-#### Task 1.2: HPOS Compatibility Declaration
-- **Agent:** `backend-specialist`
-- **INPUT:** WooCommerce HPOS documentation
-- **OUTPUT:** `before_woocommerce_init` hook declaring HPOS compatibility
-- **VERIFY:** No HPOS compatibility warnings in WC Status
+### Main entrypoint
 
----
+- `woo-return-shipping/woo-return-shipping.php`
+- Loads plugin classes
+- Declares HPOS compatibility
+- Registers activation defaults
+- Defines plugin constants
 
-### Phase 2: Settings
+### Admin UI
 
-#### Task 2.1: Settings Page
-- **Agent:** `backend-specialist`
-- **INPUT:** User requirements for configurable options
-- **OUTPUT:** `class-wrs-settings.php` with WooCommerce Settings API integration
-- **SETTINGS:**
+- `woo-return-shipping/includes/class-wrs-admin.php`
+- Enqueues refund admin assets
+- Localizes deduction defaults, labels, and validation messages
 
-| Setting | Type | Default |
-|---------|------|---------|
-| `wrs_default_fee` | number | 10.00 |
-| `wrs_fee_label` | text | "Return Shipping" |
-| `wrs_tax_status` | select | none / taxable |
-| `wrs_tax_class` | select | (WC tax classes) |
-| `wrs_email_note` | textarea | "A return shipping fee has been deducted." |
-| `wrs_show_reason_field` | checkbox | false |
+- `woo-return-shipping/assets/js/admin-refund.js`
+- Injects deduction UI into the WooCommerce refund panel
+- Recalculates gross/deduction/net state
+- Rewrites refund button labels to net amount
+- Prevents invalid refund AJAX submissions
 
-- **VERIFY:** Settings save/load correctly, appear under WooCommerce → Settings → Advanced
+### Refund logic
 
----
+- `woo-return-shipping/includes/class-wrs-refund-handler.php`
+- Reads posted deduction values
+- Validates values and combined totals
+- Mutates refund amount before gateway processing
+- Adds refund fee line items
+- Writes order notes after refund creation
 
-### Phase 3: Admin UI
+- `woo-return-shipping/includes/class-wrs-deduction-validator.php`
+- Pure validation helper for deduction math
 
-#### Task 3.1: Refund Modal Enhancement
-- **Agent:** `frontend-specialist`
-- **INPUT:** WooCommerce refund modal structure
-- **OUTPUT:** `admin-refund.js` that:
-  - Injects number input after refund items (pre-filled with default)
-  - Adds "Exempt from return fee" checkbox
-  - Updates refund total display dynamically
-  - Passes `return_shipping_fee` in AJAX payload
-- **VERIFY:** Input visible in refund modal, total updates on input change
+- `woo-return-shipping/includes/class-wrs-fee-factory.php`
+- Creates hidden order fee items and refund fee items with plugin metadata
 
-#### Task 3.2: Admin Styles
-- **Agent:** `frontend-specialist`
-- **INPUT:** WooCommerce admin design patterns
-- **OUTPUT:** `admin.css` with minimal, native-looking styles
-- **VERIFY:** UI matches WooCommerce admin aesthetic
+### Checkout fee handling
 
----
+- `woo-return-shipping/includes/class-wrs-checkout-fee.php`
+- Adds hidden `$0.00` fee items to new orders
+- Hides plugin-managed fee items in customer-facing contexts
 
-### Phase 4: Backend Refund Logic (Core)
+### Email handling
 
-#### Task 4.1: Refund Handler
-- **Agent:** `backend-specialist`
-- **INPUT:** WooCommerce refund flow, `WC_Order_Refund` API
-- **OUTPUT:** `class-wrs-refund-handler.php` with:
+- `woo-return-shipping/includes/class-wrs-email.php`
+- Hooks into refund emails only
 
-```php
-// Hooks:
-add_action('woocommerce_create_refund', [$this, 'process_return_fee'], 10, 2);
-add_filter('woocommerce_refund_amount', [$this, 'adjust_gateway_amount'], 10, 2);
-```
+- `woo-return-shipping/includes/class-wrs-email-deductions.php`
+- Collects deduction data for email rendering
 
-- **LOGIC:**
-  1. Check `$_POST['return_shipping_fee']` exists and > 0
-  2. Check "exempt" checkbox not set
-  3. Validate fee doesn't exceed refund total
-  4. Create `WC_Order_Item_Fee` with positive amount
-  5. Add to refund: `$refund->add_item($fee_item)`
-  6. Recalculate: `$refund->calculate_totals()`
-  7. Store fee in refund meta for reference
+### Settings
 
-- **VERIFY:** 
-  - Fee appears on refund order
-  - `$refund->get_total()` reflects deduction
-  - Original order unchanged
+- `woo-return-shipping/includes/class-wrs-settings.php`
+- Adds WooCommerce Advanced settings for:
+- default amounts
+- labels
+- email notes
+- tax status/class
+- hidden order line creation
 
-#### Task 4.2: Gateway Amount Filter
-- **Agent:** `backend-specialist`
-- **INPUT:** WooCommerce payment gateway refund flow
-- **OUTPUT:** Filter to ensure gateway receives net amount
-- **VERIFY:** Stripe/PayPal receives correct reduced amount
+## Compatibility
 
----
+- WordPress: `6.0+`
+- PHP: `8.0+`
+- WooCommerce: `8.0+`
+- Validated metadata target: WordPress `6.9.1`, WooCommerce `10.5.1`
+- HPOS: enabled
 
-### Phase 5: Gateway Compatibility
+The refund integration still uses WooCommerce core’s `woocommerce_create_refund` hook, which remains on the active refund creation path in WooCommerce `10.5.1`.
 
-#### Task 5.1: Stripe Compatibility
-- **Agent:** `backend-specialist`
-- **INPUT:** Stripe Official Plugin refund flow
-- **OUTPUT:** Compatibility checks/filters if needed
-- **VERIFY:** Refund processes correctly, Stripe dashboard shows net amount
+## Automated Verification
 
-#### Task 5.2: PayPal Compatibility
-- **Agent:** `backend-specialist`
-- **INPUT:** PayPal Official Plugin refund flow
-- **OUTPUT:** Compatibility checks/filters if needed
-- **VERIFY:** Refund processes correctly, PayPal dashboard shows net amount
+### PHP unit coverage
 
----
+- `tests/Unit/WRS_Deduction_Validator_Test.php`
+- `tests/Unit/WRS_Fee_Factory_Test.php`
+- `tests/Unit/WRS_Checkout_Fee_Test.php`
+- `tests/Unit/WRS_Email_Deductions_Test.php`
+- `tests/Unit/WRS_Refund_Handler_Test.php`
 
-### Phase 6: Email Integration
-
-#### Task 6.1: Refund Email Modification
-- **Agent:** `backend-specialist`
-- **INPUT:** WooCommerce email templates, refund email hooks
-- **OUTPUT:** `class-wrs-email.php` that:
-  - Ensures fee line item appears in refund email
-  - Adds configurable explanation note
-- **VERIFY:** Customer receives email with fee line item and note
-
----
-
-### Phase 7: Polish
-
-#### Task 7.1: Internationalization
-- **Agent:** `backend-specialist`
-- **INPUT:** All user-facing strings
-- **OUTPUT:** `woo-return-shipping.pot`, all strings wrapped in `__()` / `esc_html__()`
-- **VERIFY:** Strings extractable via WP-CLI
-
-#### Task 7.2: Readme & Documentation
-- **Agent:** `documentation-writer`
-- **INPUT:** Feature list, installation steps
-- **OUTPUT:** `readme.txt` (WordPress.org format), inline PHPDoc
-- **VERIFY:** Readme validates at wordpress.org/plugins/developers/readme-validator/
-
----
-
-## Phase X: Verification
-
-### Automated Checks
+Run:
 
 ```bash
-# PHP Syntax
-find . -name "*.php" -exec php -l {} \;
-
-# WordPress Coding Standards
-composer require --dev wp-coding-standards/wpcs
-./vendor/bin/phpcs --standard=WordPress woo-return-shipping.php includes/
-
-# Security Scan
-python .agent/skills/vulnerability-scanner/scripts/security_scan.py .
+composer test
 ```
 
-### Manual Testing Checklist
+### Browser regression coverage
 
-- [ ] Create order with product ($179.95)
-- [ ] Process full refund with $10 return fee
-- [ ] Verify original order has NO fee line
-- [ ] Verify refund shows fee line (+$10.00)
-- [ ] Verify refund total is -$169.95
-- [ ] Test with Stripe: gateway receives $169.95 refund
-- [ ] Test with PayPal: gateway receives $169.95 refund
-- [ ] Test "Exempt" checkbox: full refund, no fee
-- [ ] Test fee > refund amount: error handling
-- [ ] Test HPOS enabled store
-- [ ] Test Block Checkout store
-- [ ] Check refund email contains fee + note
+- `tests/e2e/admin-refund.spec.js`
 
-### Completion Marker
+Covers:
 
-```
-## ✅ PHASE X COMPLETE
-- PHPCS: ✅ Pass
-- Security: ✅ No critical issues
-- Manual Tests: ✅ All pass
-- Date: [TBD]
+- net refund button labels for valid deductions
+- blocking invalid combined deductions with inline error
+
+Run:
+
+```bash
+npm run test:e2e
 ```
 
----
+## Release Notes
 
-## Risk Mitigation
+### 2.7.1
 
-| Risk | Mitigation |
-|------|------------|
-| Gateway doesn't support partial | Validate refund amount before processing |
-| HPOS incompatibility | Use only `$order->get_*()` / `$order->set_*()` methods |
-| Fee exceeds refund | Validate with error message before processing |
-| JS conflicts | Use namespaced IIFE, defer script loading |
-
----
-
-## Notes
-
-- **No external dependencies** - Pure WordPress/WooCommerce APIs
-- **HPOS-first** - All order access via CRUD, no direct `wp_posts` queries
-- **Defensive coding** - Check WC active, version, gateway support before operations
+- Added PHPUnit regression coverage for deduction helpers and refund amount mutation.
+- Added Playwright regression coverage for refund admin behavior.
+- Added explicit invalid-deduction blocking in admin JS and server-side refund processing.
+- Updated compatibility metadata to WordPress `6.9.1` and WooCommerce `10.5.1`.

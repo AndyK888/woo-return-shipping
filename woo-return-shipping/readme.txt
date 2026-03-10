@@ -26,6 +26,7 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Dedu
 * **Simple Admin UI** - Separate deduction fields appear in the native WooCommerce refund modal
 * **Configurable Defaults** - Set default amounts, labels, and email notes
 * **Separate Deduction Types** - Return shipping and retail box damage stay independent on refunds
+* **Validation Guardrails** - Invalid combined deductions are blocked before refund submission and again on the server
 * **Email Integration** - Each deduction appears separately in customer refund emails with its own note
 * **Gateway Compatible** - Works with Stripe, PayPal, and other WooCommerce payment gateways
 * **HPOS Compatible** - Full support for WooCommerce High-Performance Order Storage
@@ -65,6 +66,10 @@ The plugin works with any WooCommerce-compatible gateway that supports refunds. 
 = Can I apply more than one deduction on the same refund? =
 
 Yes. Return shipping and retail box damage can both be applied on the same refund and are shown separately.
+
+= What happens if the deductions are higher than the refund amount? =
+
+The refund is blocked. The admin refund panel shows an inline validation error, and the server rejects the refund if an invalid request still gets through.
 
 = Is it compatible with HPOS? =
 
