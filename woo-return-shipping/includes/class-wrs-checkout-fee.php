@@ -47,13 +47,13 @@ class WRS_Checkout_Fee {
 		}
 
 		$order->add_item(
-			self::create_hidden_fee_item(
+			WRS_Fee_Factory::create_hidden_fee_item(
 				get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
 				self::RETURN_SHIPPING_FEE_TYPE
 			)
 		);
 		$order->add_item(
-			self::create_hidden_fee_item(
+			WRS_Fee_Factory::create_hidden_fee_item(
 				get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
 				self::BOX_DAMAGE_FEE_TYPE
 			)
@@ -95,25 +95,6 @@ class WRS_Checkout_Fee {
 		}
 
 		return $total_rows;
-	}
-
-	/**
-	 * Create a hidden fee item for later refund deductions.
-	 *
-	 * @param string $label    Fee label.
-	 * @param string $fee_type Managed fee type.
-	 * @return WC_Order_Item_Fee
-	 */
-	private static function create_hidden_fee_item( string $label, string $fee_type ): WC_Order_Item_Fee {
-		$fee_item = new WC_Order_Item_Fee();
-		$fee_item->set_name( $label );
-		$fee_item->set_amount( 0 );
-		$fee_item->set_total( 0 );
-		$fee_item->set_tax_status( 'none' );
-		$fee_item->add_meta_data( '_wrs_fee', 'yes', true );
-		$fee_item->add_meta_data( '_wrs_fee_type', $fee_type, true );
-
-		return $fee_item;
 	}
 
 	/**

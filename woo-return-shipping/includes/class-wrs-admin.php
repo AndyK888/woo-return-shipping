@@ -74,6 +74,10 @@ class WRS_Admin {
 				'feeLabel'            => get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
 				'boxDamageDefaultFee' => floatval( get_option( 'wrs_box_damage_default_fee', '0.00' ) ),
 				'boxDamageLabel'      => get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
+				'messages'            => array(
+					'combinedDeductionsExceedRefund' => __( 'Combined refund deductions cannot exceed the refund amount.', 'woo-return-shipping' ),
+					'invalidDeductionAmount'         => __( '%s amount must be a valid non-negative number.', 'woo-return-shipping' ),
+				),
 			)
 		);
 	}

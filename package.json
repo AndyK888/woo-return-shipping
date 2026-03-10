@@ -1,0 +1,11 @@
+{
+    "name": "woo-return-shipping-tests",
+    "private": true,
+    "scripts": {
+        "test:e2e": "playwright test"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.53.2",
+        "jquery": "^3.7.1"
+    }
+}

@@ -3,7 +3,7 @@
  * Plugin Name: WooCommerce Return Shipping Deduction
  * Plugin URI: https://github.com/your-repo/woo-return-shipping
  * Description: Deduct return shipping and retail box damage fees from refunds. Deductions appear on the refund receipt, not the original order.
- * Version: 2.7.0
+ * Version: 2.7.1
  * Author: Andrii Kaprii
  * Author URI: https://pwi.digital
  * License: GPL-2.0-or-later
@@ -13,7 +13,7 @@
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * WC requires at least: 8.0
- * WC tested up to: 10.5.2
+ * WC tested up to: 10.5.1
  *
  * @package WooReturnShipping
  */
@@ -21,7 +21,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants.
-define( 'WRS_VERSION', '2.7.0' );
+define( 'WRS_VERSION', '2.7.1' );
 define( 'WRS_PLUGIN_FILE', __FILE__ );
 define( 'WRS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WRS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -81,6 +81,9 @@ function wrs_init(): void {
 	load_plugin_textdomain( 'woo-return-shipping', false, dirname( WRS_PLUGIN_BASENAME ) . '/languages' );
 
 	// Include required files.
+	require_once WRS_PLUGIN_DIR . 'includes/class-wrs-deduction-validator.php';
+	require_once WRS_PLUGIN_DIR . 'includes/class-wrs-fee-factory.php';
+	require_once WRS_PLUGIN_DIR . 'includes/class-wrs-email-deductions.php';
 	require_once WRS_PLUGIN_DIR . 'includes/class-wrs-settings.php';
 	require_once WRS_PLUGIN_DIR . 'includes/class-wrs-admin.php';
 	require_once WRS_PLUGIN_DIR . 'includes/class-wrs-refund-handler.php';

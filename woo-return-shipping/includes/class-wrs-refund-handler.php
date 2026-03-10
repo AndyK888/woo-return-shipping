@@ -43,24 +43,25 @@ class WRS_Refund_Handler {
 	 * @param array           $args   Refund arguments.
 	 */
 	public static function modify_refund_amount( WC_Order_Refund $refund, array $args ): void {
-		$return_shipping_fee = self::get_posted_fee_amount( 'wrs_apply_fee', 'wrs_return_shipping_fee' );
-		$box_damage_fee      = self::get_posted_fee_amount( 'wrs_apply_box_damage_fee', 'wrs_box_damage_fee' );
-		$total_fee_amount    = $return_shipping_fee + $box_damage_fee;
+		$return_shipping_label = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
+		$box_damage_label      = get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
+		$return_shipping_fee   = self::get_posted_fee_amount( 'wrs_apply_fee', 'wrs_return_shipping_fee', $return_shipping_label );
+		$box_damage_fee        = self::get_posted_fee_amount( 'wrs_apply_box_damage_fee', 'wrs_box_damage_fee', $box_damage_label );
 
-		if ( $total_fee_amount <= 0 ) {
+		if ( $return_shipping_fee <= 0 && $box_damage_fee <= 0 ) {
 			return;
 		}
 
 		// Get the original refund amount (positive number).
 		$original_amount = abs( $refund->get_amount() );
+		$validation      = WRS_Deduction_Validator::validate( $original_amount, $return_shipping_fee, $box_damage_fee );
 
-		// Validate fee doesn't exceed refund.
-		if ( $total_fee_amount > $original_amount ) {
-			return;
+		if ( empty( $validation['is_valid'] ) ) {
+			throw new Exception( self::get_validation_error_message( (string) $validation['error_code'] ) );
 		}
 
 		// Calculate the NET refund amount (what customer actually gets).
-		$net_amount = $original_amount - $total_fee_amount;
+		$net_amount = (float) $validation['net_refund'];
 
 		// MODIFY THE REFUND AMOUNT - this is what the gateway will receive!
 		$refund->set_amount( $net_amount );
@@ -76,8 +77,8 @@ class WRS_Refund_Handler {
 
 		if ( $return_shipping_fee > 0 ) {
 			$refund->add_item(
-				self::create_refund_fee_item(
-					get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+				WRS_Fee_Factory::create_refund_fee_item(
+					$return_shipping_label,
 					$return_shipping_fee,
 					'return_shipping'
 				)
@@ -86,8 +87,8 @@ class WRS_Refund_Handler {
 
 		if ( $box_damage_fee > 0 ) {
 			$refund->add_item(
-				self::create_refund_fee_item(
-					get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
+				WRS_Fee_Factory::create_refund_fee_item(
+					$box_damage_label,
 					$box_damage_fee,
 					'retail_box_damage'
 				)
@@ -158,9 +159,10 @@ class WRS_Refund_Handler {
 	 *
 	 * @param string $apply_key  Checkbox field key.
 	 * @param string $amount_key Amount field key.
+	 * @param string $label      Deduction label for error messages.
 	 * @return float
 	 */
-	private static function get_posted_fee_amount( string $apply_key, string $amount_key ): float {
+	private static function get_posted_fee_amount( string $apply_key, string $amount_key, string $label ): float {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by WooCommerce.
 		$is_enabled = isset( $_POST[ $apply_key ] ) && '1' === $_POST[ $apply_key ];
 		if ( ! $is_enabled ) {
@@ -173,26 +175,35 @@ class WRS_Refund_Handler {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by WooCommerce.
-		return max( 0, floatval( sanitize_text_field( wp_unslash( $_POST[ $amount_key ] ) ) ) );
+		$raw_amount = sanitize_text_field( wp_unslash( $_POST[ $amount_key ] ) );
+
+		if ( ! is_numeric( $raw_amount ) || (float) $raw_amount < 0 ) {
+			throw new Exception(
+				sprintf(
+					/* translators: %s: deduction label */
+					__( '%s amount must be a valid non-negative number.', 'woo-return-shipping' ),
+					$label
+				)
+			);
+		}
+
+		return (float) $raw_amount;
 	}
 
 	/**
-	 * Create a refund fee item for an applied deduction.
+	 * Convert a validator error code into an admin-facing message.
 	 *
-	 * @param string $label    Fee label.
-	 * @param float  $amount   Fee amount.
-	 * @param string $fee_type Managed fee type.
-	 * @return WC_Order_Item_Fee
+	 * @param string $error_code Validator error code.
+	 * @return string
 	 */
-	private static function create_refund_fee_item( string $label, float $amount, string $fee_type ): WC_Order_Item_Fee {
-		$fee_item = new WC_Order_Item_Fee();
-		$fee_item->set_name( $label );
-		$fee_item->set_amount( $amount );
-		$fee_item->set_total( $amount );
-		$fee_item->set_tax_status( get_option( 'wrs_tax_status', 'none' ) );
-		$fee_item->add_meta_data( '_wrs_fee', 'yes', true );
-		$fee_item->add_meta_data( '_wrs_fee_type', $fee_type, true );
-
-		return $fee_item;
+	private static function get_validation_error_message( string $error_code ): string {
+		switch ( $error_code ) {
+			case 'combined_deductions_exceed_refund':
+				return __( 'Combined refund deductions cannot exceed the refund amount.', 'woo-return-shipping' );
+			case 'negative_deduction':
+				return __( 'Refund deductions must be valid non-negative amounts.', 'woo-return-shipping' );
+			default:
+				return __( 'Invalid refund deductions.', 'woo-return-shipping' );
+		}
 	}
 }

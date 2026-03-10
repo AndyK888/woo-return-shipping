@@ -3,7 +3,7 @@
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-8.0%2B-violet)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-blue)
 ![License](https://img.shields.io/badge/License-GPL--2.0-green)
-![Version](https://img.shields.io/badge/Version-2.7.0-orange)
+![Version](https://img.shields.io/badge/Version-2.7.1-orange)
 
 Deduct return shipping and retail box damage fees from WooCommerce refunds. Specifically designed for policy-based deductions that must reduce the refund amount without appearing on the original order.
 
@@ -45,10 +45,17 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Spec
 
 *   **WooCommerce**: 8.0+
 *   **PHP**: 8.0+
+*   **Validated Against**: WordPress 6.9.1 and WooCommerce 10.5.1.
 *   **Checkouts**: Classic and Block Checkout compatible.
 *   **Gateways**: Stripe, PayPal, and standard gateways.
 
 ## 📝 Changelog
+
+### 2.7.1
+*   **Test**: Added PHPUnit and Playwright regression coverage for refund deduction flows.
+*   **Fix**: Block invalid combined deductions in the admin refund panel with inline errors.
+*   **Fix**: Surface WooCommerce-friendly refund errors when invalid deductions reach the server.
+*   **Compatibility**: Validated metadata against WordPress 6.9.1 and WooCommerce 10.5.1.
 
 ### 2.7.0
 *   **Feature**: Added Retail Box Damage as a second refund deduction.

@@ -1,31 +1,28 @@
 /**
  * WooCommerce Return Shipping - Admin Refund Enhancement
  *
- * Uses multiple selectors and MutationObserver to detect refund panel.
- *
  * @package WooReturnShipping
- * @version 2.1.0
+ * @version 2.7.0
  */
 
 (function ($) {
     'use strict';
 
-    console.log('WRS v2.1.0: Script loaded');
-
     var WRS = {
-        config: window.wrsConfig || {
+        config: $.extend(true, {
             defaultFee: 10.00,
             feeLabel: 'Return Shipping',
             boxDamageDefaultFee: 0.00,
-            boxDamageLabel: 'Retail Box Damage'
-        },
+            boxDamageLabel: 'Retail Box Damage',
+            messages: {
+                combinedDeductionsExceedRefund: 'Combined refund deductions cannot exceed the refund amount.',
+                invalidDeductionAmount: '%s amount must be a valid non-negative number.'
+            }
+        }, window.wrsConfig || {}),
         observing: false,
 
         init: function () {
-            console.log('WRS: init()');
             var self = this;
-
-            // Try MANY possible button selectors for refund.
             var buttonSelectors = [
                 '.refund-items',
                 '.button.refund-items',
@@ -36,70 +33,58 @@
                 '.do-manual-refund'
             ];
 
-            $(document).on('click', buttonSelectors.join(', '), function (e) {
-                console.log('WRS: Refund button clicked!', e.target);
-                setTimeout(function () { self.tryInject(); }, 400);
+            $(document).on('click.wrs', buttonSelectors.join(', '), function () {
+                setTimeout(function () {
+                    self.tryInject();
+                }, 400);
             });
 
-            // Also watch for Cancel button.
-            $(document).on('click', '.cancel-action, .wc-order-bulk-actions .cancel', function () {
-                console.log('WRS: Cancel clicked');
+            $(document).on('click.wrs', '.cancel-action, .wc-order-bulk-actions .cancel', function () {
                 $('#wrs-fee-container').remove();
             });
 
-            // ALSO use a MutationObserver to detect when refund UI appears.
             this.observeRefundPanel();
 
-            // Check immediately if refund panel is already visible.
-            setTimeout(function () { self.tryInject(); }, 1000);
+            setTimeout(function () {
+                self.tryInject();
+            }, 1000);
         },
 
         observeRefundPanel: function () {
-            if (this.observing) return;
+            if (this.observing) {
+                return;
+            }
+
             this.observing = true;
 
             var self = this;
-            var observer = new MutationObserver(function (mutations) {
-                // Check if refund-actions appeared.
+            var observer = new MutationObserver(function () {
                 if ($('.refund-actions:visible').length && !$('#wrs-fee-container').length) {
-                    console.log('WRS: MutationObserver detected refund-actions');
                     self.tryInject();
                 }
             });
 
-            // Observe the woocommerce order metabox.
-            var target = document.querySelector('#woocommerce-order-items') || document.body;
-            observer.observe(target, { childList: true, subtree: true, attributes: true });
-            console.log('WRS: MutationObserver started on', target);
+            observer.observe(document.querySelector('#woocommerce-order-items') || document.body, {
+                childList: true,
+                subtree: true,
+                attributes: true
+            });
         },
 
         tryInject: function () {
-            console.log('WRS: tryInject()');
-
-            // Don't double-inject.
             if ($('#wrs-fee-container').length) {
-                console.log('WRS: Already injected');
                 return;
             }
 
-            // Look for refund-actions in various possible containers.
             var $actions = $('.refund-actions:visible');
-            console.log('WRS: Looking for .refund-actions:visible, found:', $actions.length);
 
             if (!$actions.length) {
-                // Try without :visible.
                 $actions = $('.refund-actions');
-                console.log('WRS: Looking for .refund-actions (any), found:', $actions.length);
             }
 
             if (!$actions.length) {
-                console.log('WRS: No refund-actions found');
                 return;
             }
-
-            // Check if refund amount input exists.
-            var $refundAmount = $('#refund_amount');
-            console.log('WRS: #refund_amount found:', $refundAmount.length, 'value:', $refundAmount.val());
 
             this.doInject($actions.first());
         },
@@ -110,48 +95,49 @@
             var boxDamageFee = parseFloat(this.config.boxDamageDefaultFee) || 0.00;
             var boxDamageLabel = this.config.boxDamageLabel || 'Retail Box Damage';
 
-            var html = '' +
+            $actions.before(
+                '' +
                 '<div id="wrs-fee-container" style="margin: 15px 0; padding: 15px; background: #fffbeb; border: 2px solid #f0d866; border-radius: 6px;">' +
-                '<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">' +
-                '<div style="display: flex; justify-content: space-between; align-items: center;">' +
-                '<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">' +
-                '<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px;">' +
-                this.escapeHtml(label) +
-                '</label>' +
-                '<div style="display: flex; align-items: center;">' +
-                '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
-                '<input type="number" id="wrs_return_shipping_fee" name="wrs_return_shipping_fee" value="' + fee.toFixed(2) + '" step="0.01" min="0" style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
-                '</div>' +
-                '</div>' +
-                '<div style="display: flex; justify-content: space-between; align-items: center;">' +
-                '<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">' +
-                '<input type="checkbox" id="wrs_apply_box_damage_fee" name="wrs_apply_box_damage_fee" value="1" style="width: 18px; height: 18px;">' +
-                this.escapeHtml(boxDamageLabel) +
-                '</label>' +
-                '<div style="display: flex; align-items: center;">' +
-                '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
-                '<input type="number" id="wrs_box_damage_fee" name="wrs_box_damage_fee" value="' + boxDamageFee.toFixed(2) + '" step="0.01" min="0" disabled style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
-                '</div>' +
-                '</div>' +
-                '<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">' +
-                '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
-                '<span style="color: #666;">Gross Refund:</span>' +
-                '<span id="wrs_gross">$0.00</span>' +
-                '</div>' +
-                '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
-                '<span style="color: #666;">Total Deductions:</span>' +
-                '<span id="wrs_total_deductions" style="color: #c00;">$0.00</span>' +
-                '</div>' +
-                '<div style="display: flex; justify-content: space-between;">' +
-                '<strong style="color: #155724;">Net to Customer:</strong>' +
-                '<strong id="wrs_net" style="color: #155724; font-size: 16px;">$0.00</strong>' +
-                '</div>' +
-                '</div>' +
-                '<div style="margin-top: 8px; font-size: 11px; color: #666;">This amount will be sent to the payment gateway.</div>' +
-                '</div>';
-
-            $actions.before(html);
-            console.log('WRS: ✅ UI INJECTED!');
+                    '<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">' +
+                        '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+                            '<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">' +
+                                '<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px;">' +
+                                this.escapeHtml(label) +
+                            '</label>' +
+                            '<div style="display: flex; align-items: center;">' +
+                                '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
+                                '<input type="number" id="wrs_return_shipping_fee" name="wrs_return_shipping_fee" value="' + fee.toFixed(2) + '" step="0.01" min="0" style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
+                            '</div>' +
+                        '</div>' +
+                        '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+                            '<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">' +
+                                '<input type="checkbox" id="wrs_apply_box_damage_fee" name="wrs_apply_box_damage_fee" value="1" style="width: 18px; height: 18px;">' +
+                                this.escapeHtml(boxDamageLabel) +
+                            '</label>' +
+                            '<div style="display: flex; align-items: center;">' +
+                                '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
+                                '<input type="number" id="wrs_box_damage_fee" name="wrs_box_damage_fee" value="' + boxDamageFee.toFixed(2) + '" step="0.01" min="0" disabled style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div id="wrs-validation-error" style="display: none; margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #d63638; background: #fcf0f1; color: #8a2424;"></div>' +
+                    '<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">' +
+                        '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
+                            '<span style="color: #666;">Gross Refund:</span>' +
+                            '<span id="wrs_gross">$0.00</span>' +
+                        '</div>' +
+                        '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
+                            '<span style="color: #666;">Total Deductions:</span>' +
+                            '<span id="wrs_total_deductions" style="color: #c00;">$0.00</span>' +
+                        '</div>' +
+                        '<div style="display: flex; justify-content: space-between;">' +
+                            '<strong style="color: #155724;">Net to Customer:</strong>' +
+                            '<strong id="wrs_net" style="color: #155724; font-size: 16px;">$0.00</strong>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="margin-top: 8px; font-size: 11px; color: #666;">This amount will be sent to the payment gateway.</div>' +
+                '</div>'
+            );
 
             this.bind();
             this.syncFeeInputStates();
@@ -161,7 +147,11 @@
         bind: function () {
             var self = this;
 
-            $(document).off('.wrs');
+            $(document).off('change.wrs', '#wrs_apply_fee, #wrs_apply_box_damage_fee');
+            $(document).off('input.wrs change.wrs', '#wrs_return_shipping_fee, #wrs_box_damage_fee, #refund_amount');
+            $(document).off('change.wrs', '.refund_order_item_qty, .refund_line_total');
+            $(document).off('ajaxSend.wrs');
+            $(document).off('ajaxSuccess.wrs');
 
             $(document).on('change.wrs', '#wrs_apply_fee, #wrs_apply_box_damage_fee', function () {
                 self.syncFeeInputStates();
@@ -173,32 +163,51 @@
             });
 
             $(document).on('change.wrs', '.refund_order_item_qty, .refund_line_total', function () {
-                setTimeout(function () { self.update(); }, 150);
+                setTimeout(function () {
+                    self.update();
+                }, 150);
             });
 
-            // Add data to AJAX.
-            $(document).ajaxSend(function (e, xhr, settings) {
-                if (!settings.data || settings.data.indexOf('action=woocommerce_refund_line_items') === -1) {
+            $(document).on('ajaxSend.wrs', function (event, xhr, settings) {
+                if (!self.isRefundRequest(settings)) {
                     return;
                 }
 
-                var applyFee = $('#wrs_apply_fee').is(':checked') ? '1' : '0';
-                var feeAmount = $('#wrs_return_shipping_fee').val() || '0';
-                var applyBoxDamageFee = $('#wrs_apply_box_damage_fee').is(':checked') ? '1' : '0';
-                var boxDamageFee = $('#wrs_box_damage_fee').val() || '0';
+                var state = self.getState();
 
-                settings.data += '&wrs_apply_fee=' + applyFee;
-                settings.data += '&wrs_return_shipping_fee=' + encodeURIComponent(feeAmount);
-                settings.data += '&wrs_apply_box_damage_fee=' + applyBoxDamageFee;
-                settings.data += '&wrs_box_damage_fee=' + encodeURIComponent(boxDamageFee);
+                self.renderValidation(state.validation);
+                self.setButtonsBlocked(!state.validation.isValid);
 
-                console.log('WRS: Added to AJAX', {
-                    applyFee: applyFee,
-                    feeAmount: feeAmount,
-                    applyBoxDamageFee: applyBoxDamageFee,
-                    boxDamageFee: boxDamageFee
-                });
+                if (!state.validation.isValid) {
+                    xhr.abort();
+                    return;
+                }
+
+                settings.data += '&wrs_apply_fee=' + (state.returnShipping.enabled ? '1' : '0');
+                settings.data += '&wrs_return_shipping_fee=' + encodeURIComponent(state.returnShipping.raw);
+                settings.data += '&wrs_apply_box_damage_fee=' + (state.boxDamage.enabled ? '1' : '0');
+                settings.data += '&wrs_box_damage_fee=' + encodeURIComponent(state.boxDamage.raw);
             });
+
+            $(document).on('ajaxSuccess.wrs', function (event, xhr, settings, data) {
+                if (!self.isRefundRequest(settings)) {
+                    return;
+                }
+
+                var response = data || xhr.responseJSON;
+
+                if (response && response.success === false && response.data && response.data.error) {
+                    self.showValidationError(response.data.error);
+                    self.setButtonsBlocked(true);
+                    return;
+                }
+
+                self.update();
+            });
+        },
+
+        isRefundRequest: function (settings) {
+            return settings && typeof settings.data === 'string' && settings.data.indexOf('action=woocommerce_refund_line_items') !== -1;
         },
 
         syncFeeInputStates: function () {
@@ -206,22 +215,152 @@
             $('#wrs_box_damage_fee').prop('disabled', !$('#wrs_apply_box_damage_fee').is(':checked'));
         },
 
-        update: function () {
-            var gross = parseFloat($('#refund_amount').val()) || 0;
-            var applyReturnShippingFee = $('#wrs_apply_fee').is(':checked');
-            var applyBoxDamageFee = $('#wrs_apply_box_damage_fee').is(':checked');
-            var returnShippingFee = applyReturnShippingFee ? (parseFloat($('#wrs_return_shipping_fee').val()) || 0) : 0;
-            var boxDamageFee = applyBoxDamageFee ? (parseFloat($('#wrs_box_damage_fee').val()) || 0) : 0;
-            var totalDeductions = returnShippingFee + boxDamageFee;
-            var net = Math.max(0, gross - totalDeductions);
+        getAmountState: function (checkboxSelector, inputSelector, label) {
+            var enabled = $(checkboxSelector).is(':checked');
+            var rawValue = $.trim($(inputSelector).val() || '');
 
-            $('#wrs_gross').text(this.formatMoney(gross));
-            $('#wrs_total_deductions').text(this.formatMoney(totalDeductions));
-            $('#wrs_net').text(this.formatMoney(net));
-            this.updateButtonLabels(gross, totalDeductions);
+            if (!enabled) {
+                return {
+                    enabled: false,
+                    raw: '0',
+                    amount: 0,
+                    isValid: true,
+                    errorMessage: ''
+                };
+            }
+
+            if (rawValue === '') {
+                return {
+                    enabled: true,
+                    raw: '0',
+                    amount: 0,
+                    isValid: true,
+                    errorMessage: ''
+                };
+            }
+
+            var amount = Number(rawValue);
+
+            if (!isFinite(amount) || amount < 0) {
+                return {
+                    enabled: true,
+                    raw: rawValue,
+                    amount: 0,
+                    isValid: false,
+                    errorMessage: this.formatTemplate(this.config.messages.invalidDeductionAmount, label)
+                };
+            }
+
+            return {
+                enabled: true,
+                raw: rawValue,
+                amount: amount,
+                isValid: true,
+                errorMessage: ''
+            };
         },
 
-        updateButtonLabels: function (gross, totalDeductions) {
+        getState: function () {
+            var gross = Number($.trim($('#refund_amount').val() || '0'));
+
+            if (!isFinite(gross) || gross < 0) {
+                gross = 0;
+            }
+
+            var returnShipping = this.getAmountState('#wrs_apply_fee', '#wrs_return_shipping_fee', this.config.feeLabel || 'Return Shipping');
+            var boxDamage = this.getAmountState('#wrs_apply_box_damage_fee', '#wrs_box_damage_fee', this.config.boxDamageLabel || 'Retail Box Damage');
+            var validation = this.validateState(gross, returnShipping, boxDamage);
+
+            return {
+                gross: gross,
+                totalDeductions: returnShipping.amount + boxDamage.amount,
+                displayNet: Math.max(0, gross - (returnShipping.amount + boxDamage.amount)),
+                validation: validation,
+                returnShipping: returnShipping,
+                boxDamage: boxDamage
+            };
+        },
+
+        validateState: function (gross, returnShipping, boxDamage) {
+            var totalDeductions = returnShipping.amount + boxDamage.amount;
+
+            if (!returnShipping.isValid) {
+                return {
+                    isValid: false,
+                    message: returnShipping.errorMessage
+                };
+            }
+
+            if (!boxDamage.isValid) {
+                return {
+                    isValid: false,
+                    message: boxDamage.errorMessage
+                };
+            }
+
+            if (totalDeductions > gross) {
+                return {
+                    isValid: false,
+                    message: this.config.messages.combinedDeductionsExceedRefund
+                };
+            }
+
+            return {
+                isValid: true,
+                message: ''
+            };
+        },
+
+        update: function () {
+            var state = this.getState();
+
+            $('#wrs_gross').text(this.formatMoney(state.gross));
+            $('#wrs_total_deductions').text(this.formatMoney(state.totalDeductions));
+            $('#wrs_net').text(this.formatMoney(state.displayNet));
+
+            this.renderValidation(state.validation);
+            this.setButtonsBlocked(!state.validation.isValid);
+            this.updateButtonLabels(state.gross, state.totalDeductions, state.validation.isValid);
+        },
+
+        renderValidation: function (validation) {
+            if (validation.isValid) {
+                this.clearValidationError();
+                return;
+            }
+
+            this.showValidationError(validation.message);
+        },
+
+        showValidationError: function (message) {
+            $('#wrs-validation-error').text(message).show();
+        },
+
+        clearValidationError: function () {
+            $('#wrs-validation-error').hide().text('');
+        },
+
+        setButtonsBlocked: function (isBlocked) {
+            var disabledValue = isBlocked ? 'true' : 'false';
+
+            $('.refund-actions .button, .refund-actions button, .refund-actions a.button').each(function () {
+                var $button = $(this);
+                var isAnchor = $button.is('a');
+
+                $button.toggleClass('disabled', isBlocked);
+                $button.attr('aria-disabled', disabledValue);
+
+                if (isAnchor) {
+                    $button.css('pointer-events', isBlocked ? 'none' : '');
+                    $button.attr('tabindex', isBlocked ? '-1' : '0');
+                    return;
+                }
+
+                $button.prop('disabled', isBlocked);
+            });
+        },
+
+        updateButtonLabels: function (gross, totalDeductions, isValid) {
             var $buttons = $('.refund-actions .button, .refund-actions button, .refund-actions a.button');
 
             if (!$buttons.length) {
@@ -229,7 +368,7 @@
             }
 
             var self = this;
-            var targetAmount = totalDeductions > 0 ? Math.max(0, gross - totalDeductions) : gross;
+            var targetAmount = isValid && totalDeductions > 0 ? Math.max(0, gross - totalDeductions) : gross;
             var formattedAmount = this.formatMoney(targetAmount);
             var formattedNumber = this.formatNumber(targetAmount);
 
@@ -243,7 +382,6 @@
                     return;
                 }
 
-                // If WooCommerce changed label text externally, refresh our template source.
                 if (!templateLabel || (lastWrittenLabel && currentLabel !== lastWrittenLabel)) {
                     templateLabel = currentLabel;
                     $button.data('wrs-label-template', templateLabel);
@@ -255,7 +393,7 @@
                     return;
                 }
 
-                if (updatedLabel && updatedLabel !== currentLabel) {
+                if (updatedLabel !== currentLabel) {
                     $button.text(updatedLabel);
                 }
 
@@ -284,6 +422,7 @@
             }
 
             var fixed = amount.toFixed(currency.precision);
+
             if (currency.format.indexOf('%s') !== -1 && currency.format.indexOf('%v') !== -1) {
                 return currency.format.replace('%s', currency.symbol).replace('%v', fixed);
             }
@@ -311,7 +450,6 @@
             var escapedDecimal = currency.decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             var escapedThousand = currency.thousand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             var amountPattern = '[0-9]+(?:' + escapedThousand + '[0-9]{3})*(?:' + escapedDecimal + '[0-9]{2})?';
-
             var symbolBefore = new RegExp(escapedSymbol + '\\s*' + amountPattern);
             var symbolAfter = new RegExp(amountPattern + '\\s*' + escapedSymbol);
 
@@ -323,12 +461,15 @@
                 return label.replace(symbolAfter, formattedMoney);
             }
 
-            var numberOnly = new RegExp(amountPattern);
-            if (numberOnly.test(label)) {
-                return label.replace(numberOnly, formattedNumber);
+            if (new RegExp(amountPattern).test(label)) {
+                return label.replace(new RegExp(amountPattern), formattedNumber);
             }
 
             return label;
+        },
+
+        formatTemplate: function (template, value) {
+            return String(template || '').replace('%s', value);
         },
 
         escapeHtml: function (str) {
@@ -338,9 +479,7 @@
         }
     };
 
-    $(document).ready(function () {
-        console.log('WRS: Document ready');
+    $(function () {
         WRS.init();
     });
-
 })(jQuery);

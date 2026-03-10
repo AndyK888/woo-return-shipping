@@ -5,8 +5,8 @@ Requires at least: 6.0
 Tested up to: 6.9.1
 Requires PHP: 8.0
 WC requires at least: 8.0
-WC tested up to: 10.5.2
-Stable tag: 2.7.0
+WC tested up to: 10.5.1
+Stable tag: 2.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -82,6 +82,12 @@ Yes. Go to WooCommerce → Settings → Advanced → Return Shipping to customiz
 4. Customer refund email with fee
 
 == Changelog ==
+
+= 2.7.1 =
+* Add PHPUnit and Playwright regression coverage for refund deduction logic.
+* Block invalid combined deductions in the admin refund panel with inline errors.
+* Return WooCommerce-friendly refund errors when deductions exceed the refund amount.
+* Validate compatibility metadata against WordPress 6.9.1 and WooCommerce 10.5.1.
 
 = 2.7.0 =
 * Add Retail Box Damage as a second refund deduction.
