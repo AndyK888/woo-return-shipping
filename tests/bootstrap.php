@@ -71,13 +71,41 @@ if ( ! function_exists( 'update_option' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wc_get_order' ) ) {
+	function wc_get_order( int $order_id ) {
+		return $GLOBALS['wrs_test_orders'][ $order_id ] ?? null;
+	}
+}
+
 if ( ! class_exists( 'WC_Order_Item_Fee' ) ) {
 	class WC_Order_Item_Fee {
+		private int $id = 0;
 		private string $name = '';
 		private float $amount = 0.0;
 		private float $total = 0.0;
 		private string $tax_status = 'none';
 		private array $meta = array();
+
+		public function __construct( ?self $item = null ) {
+			if ( ! $item instanceof self ) {
+				return;
+			}
+
+			$this->id         = $item->get_id();
+			$this->name       = $item->get_name();
+			$this->amount     = $item->get_amount();
+			$this->total      = $item->get_total();
+			$this->tax_status = $item->get_tax_status();
+			$this->meta       = $item->meta;
+		}
+
+		public function set_id( int $id ): void {
+			$this->id = $id;
+		}
+
+		public function get_id(): int {
+			return $this->id;
+		}
 
 		public function set_name( string $name ): void {
 			$this->name = $name;
@@ -121,15 +149,76 @@ if ( ! class_exists( 'WC_Order_Item_Fee' ) ) {
 	}
 }
 
+if ( ! class_exists( 'WC_Order' ) ) {
+	class WC_Order {
+		private int $id = 0;
+		private array $items = array();
+		private array $notes = array();
+
+		public function __construct( int $id = 0 ) {
+			$this->id = $id;
+		}
+
+		public function get_id(): int {
+			return $this->id;
+		}
+
+		public function add_item( WC_Order_Item_Fee $item ): void {
+			if ( 0 === $item->get_id() ) {
+				$item->set_id( count( $this->items['fee'] ?? array() ) + 1 );
+			}
+
+			$this->items['fee'][ $item->get_id() ] = $item;
+		}
+
+		public function get_items( string $type = '' ): array {
+			if ( '' === $type ) {
+				return $this->items;
+			}
+
+			return $this->items[ $type ] ?? array();
+		}
+
+		public function add_order_note( string $note ): void {
+			$this->notes[] = $note;
+		}
+
+		public function get_order_notes(): array {
+			return $this->notes;
+		}
+
+		public function save(): void {}
+	}
+}
+
 if ( ! class_exists( 'WC_Order_Refund' ) ) {
 	class WC_Order_Refund {
+		private int $id = 0;
+		private int $parent_id = 0;
 		private float $amount = 0.0;
 		private float $total = 0.0;
 		private array $meta = array();
 		private array $items = array();
 
-		public function __construct( float $amount = 0.0 ) {
+		public function __construct( float $amount = 0.0, int $id = 0 ) {
 			$this->amount = $amount;
+			$this->id     = $id;
+		}
+
+		public function get_id(): int {
+			return $this->id;
+		}
+
+		public function set_id( int $id ): void {
+			$this->id = $id;
+		}
+
+		public function set_parent_id( int $parent_id ): void {
+			$this->parent_id = $parent_id;
+		}
+
+		public function get_parent_id(): int {
+			return $this->parent_id;
 		}
 
 		public function get_amount(): float {

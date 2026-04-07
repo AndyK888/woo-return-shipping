@@ -47,6 +47,7 @@ class WRS_Refund_Handler {
 		$box_damage_label      = get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
 		$return_shipping_fee   = self::get_posted_fee_amount( 'wrs_apply_fee', 'wrs_return_shipping_fee', $return_shipping_label );
 		$box_damage_fee        = self::get_posted_fee_amount( 'wrs_apply_box_damage_fee', 'wrs_box_damage_fee', $box_damage_label );
+		$order                 = self::get_refund_order( $refund, $args );
 
 		if ( $return_shipping_fee <= 0 && $box_damage_fee <= 0 ) {
 			return;
@@ -77,7 +78,8 @@ class WRS_Refund_Handler {
 
 		if ( $return_shipping_fee > 0 ) {
 			$refund->add_item(
-				WRS_Fee_Factory::create_refund_fee_item(
+				self::create_refund_fee_item(
+					$order,
 					$return_shipping_label,
 					$return_shipping_fee,
 					'return_shipping'
@@ -87,7 +89,8 @@ class WRS_Refund_Handler {
 
 		if ( $box_damage_fee > 0 ) {
 			$refund->add_item(
-				WRS_Fee_Factory::create_refund_fee_item(
+				self::create_refund_fee_item(
+					$order,
 					$box_damage_label,
 					$box_damage_fee,
 					'retail_box_damage'
@@ -205,5 +208,80 @@ class WRS_Refund_Handler {
 			default:
 				return __( 'Invalid refund deductions.', 'woo-return-shipping' );
 		}
+	}
+
+	/**
+	 * Resolve the parent order for the current refund operation.
+	 *
+	 * @param WC_Order_Refund $refund Refund object.
+	 * @param array           $args   Refund arguments.
+	 * @return WC_Order|null
+	 */
+	private static function get_refund_order( WC_Order_Refund $refund, array $args ) {
+		$order_id = isset( $args['order_id'] ) ? (int) $args['order_id'] : 0;
+
+		if ( 0 === $order_id && method_exists( $refund, 'get_parent_id' ) ) {
+			$order_id = (int) $refund->get_parent_id();
+		}
+
+		if ( $order_id <= 0 ) {
+			return null;
+		}
+
+		$order = wc_get_order( $order_id );
+
+		return $order instanceof WC_Order ? $order : null;
+	}
+
+	/**
+	 * Create a refund fee item, linking it to the original hidden fee row when possible.
+	 *
+	 * @param WC_Order|null $order    Parent order.
+	 * @param string        $label    Fee label.
+	 * @param float         $amount   Deduction amount.
+	 * @param string        $fee_type Managed fee type.
+	 * @return WC_Order_Item_Fee
+	 */
+	private static function create_refund_fee_item( ?WC_Order $order, string $label, float $amount, string $fee_type ): WC_Order_Item_Fee {
+		if ( $order instanceof WC_Order ) {
+			$order_fee_item = self::find_order_fee_item( $order, $label, $fee_type );
+
+			if ( $order_fee_item instanceof WC_Order_Item_Fee && $order_fee_item->get_id() > 0 ) {
+				return WRS_Fee_Factory::create_linked_refund_fee_item( $order_fee_item, $amount );
+			}
+		}
+
+		return WRS_Fee_Factory::create_refund_fee_item( $label, $amount, $fee_type );
+	}
+
+	/**
+	 * Find the hidden order fee row backing a managed deduction type.
+	 *
+	 * @param WC_Order $order    Parent order.
+	 * @param string   $label    Current configured label.
+	 * @param string   $fee_type Managed fee type.
+	 * @return WC_Order_Item_Fee|null
+	 */
+	private static function find_order_fee_item( WC_Order $order, string $label, string $fee_type ): ?WC_Order_Item_Fee {
+		foreach ( $order->get_items( 'fee' ) as $item ) {
+			if ( ! $item instanceof WC_Order_Item_Fee ) {
+				continue;
+			}
+
+			if ( $fee_type === $item->get_meta( '_wrs_fee_type' ) ) {
+				return $item;
+			}
+
+			if ( 'yes' !== $item->get_meta( '_wrs_fee' ) ) {
+				continue;
+			}
+
+			$item_name = $item->get_name();
+			if ( '' !== $item_name && ( false !== stripos( $item_name, $label ) || false !== stripos( $label, $item_name ) ) ) {
+				return $item;
+			}
+		}
+
+		return null;
 	}
 }

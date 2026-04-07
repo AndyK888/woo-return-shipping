@@ -17,7 +17,7 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Dedu
 **WooCommerce Return Shipping Deduction** allows store admins to deduct return shipping and retail box damage fees from refunds. The deductions:
 
 * **Does NOT appear** on the original order
-* **DOES appear** as a line item on the refund
+* **DOES appear** against dedicated hidden fee rows on the refund
 * **Is correctly deducted** from the amount sent to payment gateways
 * **Shows in customer emails** with optional explanatory text
 
@@ -35,7 +35,7 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Dedu
 
 1. Process a refund as normal in WooCommerce
 2. Enter the return shipping fee amount, retail box damage fee, or both
-3. Each deduction is added as a separate positive line item to the refund
+3. Each deduction is recorded against its matching hidden fee row on the refund
 4. Customer receives refund minus the combined deductions
 5. Payment gateway processes the net amount
 

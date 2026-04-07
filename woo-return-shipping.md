@@ -36,7 +36,7 @@ The customer sees the net refund amount. WooCommerce payment gateways receive th
 
 - During `woocommerce_create_refund`, the plugin validates posted deduction values.
 - The plugin reduces the refund object amount before WooCommerce sends the refund to the gateway.
-- Separate refund fee line items are added for each applied deduction.
+- Refund fee items are linked back to the hidden order fee rows for each applied deduction.
 - Refund metadata stores:
 - original refund amount
 - return shipping fee
@@ -77,14 +77,14 @@ The customer sees the net refund amount. WooCommerce payment gateways receive th
 - Reads posted deduction values
 - Validates values and combined totals
 - Mutates refund amount before gateway processing
-- Adds refund fee line items
+- Links refund fee items to the original hidden fee rows
 - Writes order notes after refund creation
 
 - `woo-return-shipping/includes/class-wrs-deduction-validator.php`
 - Pure validation helper for deduction math
 
 - `woo-return-shipping/includes/class-wrs-fee-factory.php`
-- Creates hidden order fee items and refund fee items with plugin metadata
+- Creates hidden order fee items and linked refund fee items with plugin metadata
 
 ### Checkout fee handling
 

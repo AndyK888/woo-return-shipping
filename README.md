@@ -25,7 +25,7 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Spec
 2.  **Refund Process**: When processing a refund in Admin:
     *   Enter the return shipping fee amount, retail box damage fee, or both.
     *   The plugin subtracts the combined deductions from the gateway refund amount.
-    *   Each deduction appears as its own refund fee line item.
+    *   Each deduction is recorded against its own hidden fee row in the refund record.
 3.  **Customer Experience**: The customer receives the net refund. The refund email shows each deduction separately.
 
 ## 🛠️ Installation
