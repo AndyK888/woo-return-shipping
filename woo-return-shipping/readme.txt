@@ -2,11 +2,11 @@
 Contributors: Andrii Kaprii
 Tags: woocommerce, refund, return shipping, shipping fee, order management
 Requires at least: 6.0
-Tested up to: 6.9.1
+Tested up to: 6.9.4
 Requires PHP: 8.0
 WC requires at least: 8.0
-WC tested up to: 10.5.1
-Stable tag: 2.7.1
+WC tested up to: 10.6.2
+Stable tag: 2.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -87,6 +87,11 @@ Yes. Go to WooCommerce → Settings → Advanced → Return Shipping to customiz
 4. Customer refund email with fee
 
 == Changelog ==
+
+= 2.7.2 =
+* Add the missing nullable WC_Order return type to the refund-order resolver.
+* Document why linked refund fee items remain negative to match WooCommerce core refund storage.
+* Review compatibility against WordPress 6.9.4 and WooCommerce 10.6.2 official sources.
 
 = 2.7.1 =
 * Add PHPUnit and Playwright regression coverage for refund deduction logic.

@@ -3,7 +3,7 @@
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-8.0%2B-violet)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-blue)
 ![License](https://img.shields.io/badge/License-GPL--2.0-green)
-![Version](https://img.shields.io/badge/Version-2.7.1-orange)
+![Version](https://img.shields.io/badge/Version-2.7.2-orange)
 
 Deduct return shipping and retail box damage fees from WooCommerce refunds. Specifically designed for policy-based deductions that must reduce the refund amount without appearing on the original order.
 
@@ -46,7 +46,9 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Spec
 
 *   **WooCommerce**: 8.0+
 *   **PHP**: 8.0+
-*   **Validated Against**: WordPress 6.9.1 and WooCommerce 10.5.1.
+*   **Reviewed Against**: WordPress 6.9.4 and WooCommerce 10.6.2 official sources.
+*   **Verification Basis**: Local PHPUnit regression suite plus current WooCommerce code-reference review of refund hooks, refund totals, and admin order item hooks.
+*   **Runtime Note**: A live-store WooCommerce refund smoke test is still recommended before release.
 *   **Checkouts**: Classic and Block Checkout compatible.
 *   **Gateways**: Stripe, PayPal, and standard gateways.
 
@@ -57,6 +59,11 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Spec
 *   **Scope**: deduction validation, refund mutation, email deduction collection, and admin refund UI regression coverage
 
 ## 📝 Changelog
+
+### 2.7.2
+*   **Fix**: Added the missing nullable `WC_Order` return type on the refund-order resolver.
+*   **Docs**: Documented why linked refund fee items stay negative to match WooCommerce core refund storage.
+*   **Compatibility**: Reviewed WordPress 6.9.4 and WooCommerce 10.6.2 against the plugin's current integration points.
 
 ### 2.7.1
 *   **Test**: Added PHPUnit and Playwright regression coverage for refund deduction flows.

@@ -217,7 +217,7 @@ class WRS_Refund_Handler {
 	 * @param array           $args   Refund arguments.
 	 * @return WC_Order|null
 	 */
-	private static function get_refund_order( WC_Order_Refund $refund, array $args ) {
+	private static function get_refund_order( WC_Order_Refund $refund, array $args ): ?WC_Order {
 		$order_id = isset( $args['order_id'] ) ? (int) $args['order_id'] : 0;
 
 		if ( 0 === $order_id && method_exists( $refund, 'get_parent_id' ) ) {

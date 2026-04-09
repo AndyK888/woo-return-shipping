@@ -31,6 +31,9 @@ final class WRS_Fee_Factory {
 	/**
 	 * Create a refund fee item representing an applied deduction.
 	 *
+	 * WooCommerce stores refund-linked line items as negative totals and
+	 * derives the displayed refunded amount from those stored values.
+	 *
 	 * @param string $label    Fee label.
 	 * @param float  $amount   Deduction amount.
 	 * @param string $fee_type Managed fee type.
