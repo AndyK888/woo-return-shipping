@@ -106,7 +106,7 @@
                             '</label>' +
                             '<div style="display: flex; align-items: center;">' +
                                 '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
-                                '<input type="number" id="wrs_return_shipping_fee" name="wrs_return_shipping_fee" value="' + fee.toFixed(2) + '" step="0.01" min="0" style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
+                                '<input type="number" id="wrs_return_shipping_fee" name="wrs_return_shipping_fee" value="' + fee.toFixed(2) + '" step="0.01" min="0" aria-label="' + this.escapeHtml(label) + ' amount" style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
                             '</div>' +
                         '</div>' +
                         '<div style="display: flex; justify-content: space-between; align-items: center;">' +
@@ -116,11 +116,11 @@
                             '</label>' +
                             '<div style="display: flex; align-items: center;">' +
                                 '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
-                                '<input type="number" id="wrs_box_damage_fee" name="wrs_box_damage_fee" value="' + boxDamageFee.toFixed(2) + '" step="0.01" min="0" disabled style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
+                                '<input type="number" id="wrs_box_damage_fee" name="wrs_box_damage_fee" value="' + boxDamageFee.toFixed(2) + '" step="0.01" min="0" disabled aria-label="' + this.escapeHtml(boxDamageLabel) + ' amount" style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
-                    '<div id="wrs-validation-error" style="display: none; margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #d63638; background: #fcf0f1; color: #8a2424;"></div>' +
+                    '<div id="wrs-validation-error" role="alert" aria-live="polite" style="display: none; margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #d63638; background: #fcf0f1; color: #8a2424;"></div>' +
                     '<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">' +
                         '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
                             '<span style="color: #666;">Gross Refund:</span>' +
