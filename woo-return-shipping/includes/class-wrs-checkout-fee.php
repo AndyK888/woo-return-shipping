@@ -105,12 +105,16 @@ class WRS_Checkout_Fee {
 	 * @param array                         $types Item types.
 	 * @return array
 	 */
-	public static function filter_order_items( array $items, $order, array $types ): array {
+	public static function filter_order_items( array $items, $order, array $types = array() ): array {
 		if ( is_admin() ) {
 			return $items;
 		}
 
 		if ( is_a( $order, 'WC_Order_Refund' ) || ( method_exists( $order, 'get_type' ) && 'shop_order_refund' === $order->get_type() ) ) {
+			return $items;
+		}
+
+		if ( ! empty( $types ) && ! in_array( 'fee', $types, true ) ) {
 			return $items;
 		}
 
