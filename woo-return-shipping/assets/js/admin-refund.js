@@ -59,7 +59,19 @@
 
             var self = this;
             var observer = new MutationObserver(function () {
-                if ($('.refund-actions:visible').length && !$('#wrs-fee-container').length) {
+                // ⚡ Bolt Performance Optimization
+                // What: Replaced jQuery's `:visible` pseudo-selector with native DOM APIs.
+                // Why: jQuery's `:visible` forces a costly layout/reflow calculation on EVERY DOM mutation
+                // in the order items panel. This was a significant main-thread bottleneck.
+                // How: We check if the container is already injected first (fast ID lookup).
+                // Then we check visibility using offsetWidth/offsetHeight (still triggers layout, but
+                // much faster than jQuery's comprehensive checks, and only runs if container isn't injected).
+                if (document.getElementById('wrs-fee-container')) {
+                    return;
+                }
+
+                var actions = document.querySelector('.refund-actions');
+                if (actions && (actions.offsetWidth > 0 || actions.offsetHeight > 0)) {
                     self.tryInject();
                 }
             });
