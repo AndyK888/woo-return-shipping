@@ -1,0 +1,3 @@
+## 2024-05-14 - Accessibility for JS-injected forms
+**Learning:** Dynamically injected UI components (like the Woo Return Shipping refund fees injected via JS) often lack the same level of accessibility care as server-rendered HTML. Missing ARIA labels on dynamic inputs and missing `role="alert"` on dynamically shown error messages makes them invisible to screen readers, severely hurting usability for assistive technologies.
+**Action:** When reviewing or modifying JS that injects HTML strings or DOM elements, explicitly look for missing `aria-label` attributes on interactive elements (especially number inputs with symbol prefixes) and ensure error containers have `role="alert"` so changes are announced properly.
