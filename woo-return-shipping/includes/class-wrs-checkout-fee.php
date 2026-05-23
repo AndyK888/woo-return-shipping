@@ -78,13 +78,17 @@ class WRS_Checkout_Fee {
 			return $total_rows;
 		}
 
-		$hidden_fee_labels = array(
-			get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
-			get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
-		);
+		$hidden_fee_labels = null;
 
 		foreach ( $total_rows as $key => $row ) {
 			if ( strpos( $key, 'fee' ) !== false && isset( $row['label'] ) ) {
+				if ( null === $hidden_fee_labels ) {
+					$hidden_fee_labels = array(
+						get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+						get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
+					);
+				}
+
 				foreach ( $hidden_fee_labels as $hidden_fee_label ) {
 					if ( false !== strpos( $row['label'], $hidden_fee_label ) ) {
 						unset( $total_rows[ $key ] );

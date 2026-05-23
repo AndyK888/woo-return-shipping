@@ -47,11 +47,12 @@ class WRS_Refund_Handler {
 		$box_damage_label      = get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
 		$return_shipping_fee   = self::get_posted_fee_amount( 'wrs_apply_fee', 'wrs_return_shipping_fee', $return_shipping_label );
 		$box_damage_fee        = self::get_posted_fee_amount( 'wrs_apply_box_damage_fee', 'wrs_box_damage_fee', $box_damage_label );
-		$order                 = self::get_refund_order( $refund, $args );
 
 		if ( $return_shipping_fee <= 0 && $box_damage_fee <= 0 ) {
 			return;
 		}
+
+		$order                 = self::get_refund_order( $refund, $args );
 
 		// Get the original refund amount (positive number).
 		$original_amount = abs( $refund->get_amount() );

@@ -1,0 +1,3 @@
+## 2024-05-23 - Lazy evaluation in WooCommerce hooks
+**Learning:** High-traffic WooCommerce actions like `woocommerce_create_refund` or loops over `$total_rows` can unnecessarily hit the database or execute expensive string comparisons when data is resolved eagerly. `wc_get_order()` specifically can be a costly operation if called unnecessarily.
+**Action:** Delay expensive lookups (like `get_option` or `wc_get_order`) and string operations (`stripos`) until after early returns or via short-circuit evaluations within `if` blocks to prevent regressions in standard store operations that don't need these lookups.
