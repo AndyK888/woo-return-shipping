@@ -101,14 +101,15 @@ class WRS_Admin {
 			<td colspan="100%" style="padding: 15px !important;">
 				<div class="wrs-fee-container" style="border: 2px solid #f0d866; border-radius: 6px; padding: 15px; background: #fffbeb;">
 					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-						<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
+						<label for="wrs_apply_fee" style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
 							<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px;">
 							<?php echo esc_html( $fee_label ); ?>
 						</label>
 						<div style="display: flex; align-items: center;">
-							<span style="color: #c00; font-weight: bold; margin-right: 4px;">−$</span>
+							<span aria-hidden="true" style="color: #c00; font-weight: bold; margin-right: 4px;">−$</span>
 							<input type="number" 
 								id="wrs_return_shipping_fee" 
+								aria-label="<?php echo esc_attr( sprintf( __( 'Amount for %s', 'woo-return-shipping' ), $fee_label ) ); ?>"
 								name="wrs_return_shipping_fee" 
 								value="<?php echo esc_attr( number_format( $default_fee, 2, '.', '' ) ); ?>" 
 								step="0.01" 
