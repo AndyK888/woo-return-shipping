@@ -105,8 +105,8 @@
                                 this.escapeHtml(label) +
                             '</label>' +
                             '<div style="display: flex; align-items: center;">' +
-                                '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
-                                '<input type="number" id="wrs_return_shipping_fee" name="wrs_return_shipping_fee" value="' + fee.toFixed(2) + '" step="0.01" min="0" style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
+                                '<span aria-hidden="true" style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
+                                '<input type="number" aria-label="' + this.escapeHtml(label) + ' amount" id="wrs_return_shipping_fee" name="wrs_return_shipping_fee" value="' + fee.toFixed(2) + '" step="0.01" min="0" style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
                             '</div>' +
                         '</div>' +
                         '<div style="display: flex; justify-content: space-between; align-items: center;">' +
@@ -115,8 +115,8 @@
                                 this.escapeHtml(boxDamageLabel) +
                             '</label>' +
                             '<div style="display: flex; align-items: center;">' +
-                                '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
-                                '<input type="number" id="wrs_box_damage_fee" name="wrs_box_damage_fee" value="' + boxDamageFee.toFixed(2) + '" step="0.01" min="0" disabled style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
+                                '<span aria-hidden="true" style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
+                                '<input type="number" aria-label="' + this.escapeHtml(boxDamageLabel) + ' amount" id="wrs_box_damage_fee" name="wrs_box_damage_fee" value="' + boxDamageFee.toFixed(2) + '" step="0.01" min="0" disabled style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
