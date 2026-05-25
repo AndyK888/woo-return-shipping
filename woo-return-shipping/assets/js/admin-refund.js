@@ -120,7 +120,7 @@
                             '</div>' +
                         '</div>' +
                     '</div>' +
-                    '<div id="wrs-validation-error" style="display: none; margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #d63638; background: #fcf0f1; color: #8a2424;"></div>' +
+                    '<div id="wrs-validation-error" aria-live="polite" role="alert" style="display: none; margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #d63638; background: #fcf0f1; color: #8a2424;"></div>' +
                     '<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">' +
                         '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
                             '<span style="color: #666;">Gross Refund:</span>' +
