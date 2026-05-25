@@ -402,16 +402,22 @@
         },
 
         getCurrencyFormat: function () {
+            if (this._cachedCurrencyFormat) {
+                return this._cachedCurrencyFormat;
+            }
+
             var meta = window.woocommerce_admin_meta_boxes || {};
             var precision = parseInt(meta.currency_format_num_decimals || 2, 10);
 
-            return {
+            this._cachedCurrencyFormat = {
                 symbol: meta.currency_format_symbol || '$',
                 decimal: meta.currency_format_decimal_sep || '.',
                 thousand: meta.currency_format_thousand_sep || ',',
                 precision: isNaN(precision) ? 2 : precision,
                 format: meta.currency_format || '%s%v'
             };
+
+            return this._cachedCurrencyFormat;
         },
 
         formatMoney: function (amount) {
@@ -445,24 +451,30 @@
                 return label;
             }
 
-            var currency = this.getCurrencyFormat();
-            var escapedSymbol = currency.symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            var escapedDecimal = currency.decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            var escapedThousand = currency.thousand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            var amountPattern = '[0-9]+(?:' + escapedThousand + '[0-9]{3})*(?:' + escapedDecimal + '[0-9]{2})?';
-            var symbolBefore = new RegExp(escapedSymbol + '\\s*' + amountPattern);
-            var symbolAfter = new RegExp(amountPattern + '\\s*' + escapedSymbol);
+            if (!this._amountRegexes) {
+                var currency = this.getCurrencyFormat();
+                var escapedSymbol = currency.symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var escapedDecimal = currency.decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var escapedThousand = currency.thousand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var amountPattern = '[0-9]+(?:' + escapedThousand + '[0-9]{3})*(?:' + escapedDecimal + '[0-9]{2})?';
 
-            if (symbolBefore.test(label)) {
-                return label.replace(symbolBefore, formattedMoney);
+                this._amountRegexes = {
+                    symbolBefore: new RegExp(escapedSymbol + '\\s*' + amountPattern),
+                    symbolAfter: new RegExp(amountPattern + '\\s*' + escapedSymbol),
+                    amountOnly: new RegExp(amountPattern)
+                };
             }
 
-            if (symbolAfter.test(label)) {
-                return label.replace(symbolAfter, formattedMoney);
+            if (this._amountRegexes.symbolBefore.test(label)) {
+                return label.replace(this._amountRegexes.symbolBefore, formattedMoney);
             }
 
-            if (new RegExp(amountPattern).test(label)) {
-                return label.replace(new RegExp(amountPattern), formattedNumber);
+            if (this._amountRegexes.symbolAfter.test(label)) {
+                return label.replace(this._amountRegexes.symbolAfter, formattedMoney);
+            }
+
+            if (this._amountRegexes.amountOnly.test(label)) {
+                return label.replace(this._amountRegexes.amountOnly, formattedNumber);
             }
 
             return label;
