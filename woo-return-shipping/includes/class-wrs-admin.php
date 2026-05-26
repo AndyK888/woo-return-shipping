@@ -110,6 +110,7 @@ class WRS_Admin {
 							<input type="number" 
 								id="wrs_return_shipping_fee" 
 								name="wrs_return_shipping_fee" 
+								aria-label="<?php echo esc_attr( $fee_label ); ?> amount"
 								value="<?php echo esc_attr( number_format( $default_fee, 2, '.', '' ) ); ?>" 
 								step="0.01" 
 								min="0"
