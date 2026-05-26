@@ -1,0 +1,3 @@
+## 2023-10-27 - Memoization in High-Frequency jQuery Event Handlers
+**Learning:** In the WooCommerce UI logic, keyup and change events can trigger recalculations across multiple DOM elements rapidly. When doing string replacements to match currency symbols against potentially varied formats (in `replaceAmountInLabel`), recompiling three distinct `RegExp` objects per invocation places unnecessary pressure on the garbage collector and burns CPU cycles.
+**Action:** When updating DOM state inside high-frequency DOM event handlers, safely memoize dynamically constructed regular expressions and global lookups (like `window.woocommerce_admin_meta_boxes`) inside the closure or parent object.
