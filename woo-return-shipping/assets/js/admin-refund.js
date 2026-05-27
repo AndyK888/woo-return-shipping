@@ -95,6 +95,9 @@
             var boxDamageFee = parseFloat(this.config.boxDamageDefaultFee) || 0.00;
             var boxDamageLabel = this.config.boxDamageLabel || 'Retail Box Damage';
 
+            var escapedLabel = this.escapeHtml(label);
+            var escapedBoxDamageLabel = this.escapeHtml(boxDamageLabel);
+
             $actions.before(
                 '' +
                 '<div id="wrs-fee-container" style="margin: 15px 0; padding: 15px; background: #fffbeb; border: 2px solid #f0d866; border-radius: 6px;">' +
@@ -102,25 +105,25 @@
                         '<div style="display: flex; justify-content: space-between; align-items: center;">' +
                             '<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">' +
                                 '<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px;">' +
-                                this.escapeHtml(label) +
+                                escapedLabel +
                             '</label>' +
                             '<div style="display: flex; align-items: center;">' +
                                 '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
-                                '<input type="number" id="wrs_return_shipping_fee" name="wrs_return_shipping_fee" value="' + fee.toFixed(2) + '" step="0.01" min="0" style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
+                                '<input type="number" aria-label="' + escapedLabel + ' amount" id="wrs_return_shipping_fee" name="wrs_return_shipping_fee" value="' + fee.toFixed(2) + '" step="0.01" min="0" style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
                             '</div>' +
                         '</div>' +
                         '<div style="display: flex; justify-content: space-between; align-items: center;">' +
                             '<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">' +
                                 '<input type="checkbox" id="wrs_apply_box_damage_fee" name="wrs_apply_box_damage_fee" value="1" style="width: 18px; height: 18px;">' +
-                                this.escapeHtml(boxDamageLabel) +
+                                escapedBoxDamageLabel +
                             '</label>' +
                             '<div style="display: flex; align-items: center;">' +
                                 '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
-                                '<input type="number" id="wrs_box_damage_fee" name="wrs_box_damage_fee" value="' + boxDamageFee.toFixed(2) + '" step="0.01" min="0" disabled style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
+                                '<input type="number" aria-label="' + escapedBoxDamageLabel + ' amount" id="wrs_box_damage_fee" name="wrs_box_damage_fee" value="' + boxDamageFee.toFixed(2) + '" step="0.01" min="0" disabled style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
-                    '<div id="wrs-validation-error" style="display: none; margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #d63638; background: #fcf0f1; color: #8a2424;"></div>' +
+                    '<div id="wrs-validation-error" role="alert" aria-live="assertive" style="display: none; margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #d63638; background: #fcf0f1; color: #8a2424;"></div>' +
                     '<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">' +
                         '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
                             '<span style="color: #666;">Gross Refund:</span>' +
