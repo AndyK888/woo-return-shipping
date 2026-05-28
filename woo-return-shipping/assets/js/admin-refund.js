@@ -20,6 +20,8 @@
             }
         }, window.wrsConfig || {}),
         observing: false,
+        _currencyFormatCache: null,
+        _labelRegexCache: null,
 
         init: function () {
             var self = this;
@@ -402,16 +404,48 @@
         },
 
         getCurrencyFormat: function () {
+            // ⚡ Bolt Performance Optimization:
+            // Memoize expensive global object lookup and format parsing
+            // to prevent unnecessary CPU usage during high-frequency input events.
+            if (this._currencyFormatCache) {
+                return this._currencyFormatCache;
+            }
+
             var meta = window.woocommerce_admin_meta_boxes || {};
             var precision = parseInt(meta.currency_format_num_decimals || 2, 10);
 
-            return {
+            this._currencyFormatCache = {
                 symbol: meta.currency_format_symbol || '$',
                 decimal: meta.currency_format_decimal_sep || '.',
                 thousand: meta.currency_format_thousand_sep || ',',
                 precision: isNaN(precision) ? 2 : precision,
                 format: meta.currency_format || '%s%v'
             };
+
+            return this._currencyFormatCache;
+        },
+
+        getLabelRegexes: function() {
+            // ⚡ Bolt Performance Optimization:
+            // Memoize expensive RegExp instance creation to prevent unnecessary
+            // CPU usage and GC pressure during high-frequency input events.
+            if (this._labelRegexCache) {
+                return this._labelRegexCache;
+            }
+
+            var currency = this.getCurrencyFormat();
+            var escapedSymbol = currency.symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var escapedDecimal = currency.decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var escapedThousand = currency.thousand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var amountPattern = '[0-9]+(?:' + escapedThousand + '[0-9]{3})*(?:' + escapedDecimal + '[0-9]{2})?';
+
+            this._labelRegexCache = {
+                symbolBefore: new RegExp(escapedSymbol + '\\s*' + amountPattern),
+                symbolAfter: new RegExp(amountPattern + '\\s*' + escapedSymbol),
+                amountOnly: new RegExp(amountPattern)
+            };
+
+            return this._labelRegexCache;
         },
 
         formatMoney: function (amount) {
@@ -445,24 +479,21 @@
                 return label;
             }
 
-            var currency = this.getCurrencyFormat();
-            var escapedSymbol = currency.symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            var escapedDecimal = currency.decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            var escapedThousand = currency.thousand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            var amountPattern = '[0-9]+(?:' + escapedThousand + '[0-9]{3})*(?:' + escapedDecimal + '[0-9]{2})?';
-            var symbolBefore = new RegExp(escapedSymbol + '\\s*' + amountPattern);
-            var symbolAfter = new RegExp(amountPattern + '\\s*' + escapedSymbol);
+            // ⚡ Bolt Performance Optimization:
+            // Use memoized regular expressions to prevent unnecessary CPU usage
+            // and garbage collection pressure during high-frequency input events.
+            var regexes = this.getLabelRegexes();
 
-            if (symbolBefore.test(label)) {
-                return label.replace(symbolBefore, formattedMoney);
+            if (regexes.symbolBefore.test(label)) {
+                return label.replace(regexes.symbolBefore, formattedMoney);
             }
 
-            if (symbolAfter.test(label)) {
-                return label.replace(symbolAfter, formattedMoney);
+            if (regexes.symbolAfter.test(label)) {
+                return label.replace(regexes.symbolAfter, formattedMoney);
             }
 
-            if (new RegExp(amountPattern).test(label)) {
-                return label.replace(new RegExp(amountPattern), formattedNumber);
+            if (regexes.amountOnly.test(label)) {
+                return label.replace(regexes.amountOnly, formattedNumber);
             }
 
             return label;
