@@ -6,12 +6,14 @@ const { test, expect } = require('@playwright/test');
 const pluginScriptPath = path.resolve(__dirname, '../../woo-return-shipping/assets/js/admin-refund.js');
 const jqueryPath = require.resolve('jquery/dist/jquery.min.js');
 
-function getActionMarkup(mode, grossAmountText) {
+function getActionMarkup(mode, grossAmountText, currencySymbol) {
+    const grossLabel = currencySymbol ? `${currencySymbol}${grossAmountText}` : grossAmountText;
+
     if (mode === 'all-hidden') {
         return `
             <div class="refund-actions" style="display:none">
-                <button class="button do-manual-refund">Refund ${grossAmountText} manually</button>
-                <button class="button do-api-refund">Refund ${grossAmountText} via Stripe</button>
+                <button class="button do-manual-refund">Refund ${grossLabel} manually</button>
+                <button class="button do-api-refund">Refund ${grossLabel} via Stripe</button>
             </div>
             <div class="refund-actions" style="display:none">
                 <a class="button do-api-refund" href="#">Refund ${grossAmountText} via PayPal</a>
@@ -22,8 +24,8 @@ function getActionMarkup(mode, grossAmountText) {
     if (mode === 'multiple-visible') {
         return `
             <div class="refund-actions" style="display:block">
-                <button class="button do-manual-refund">Refund ${grossAmountText} manually</button>
-                <button class="button do-api-refund">Refund ${grossAmountText} via Stripe</button>
+                <button class="button do-manual-refund">Refund ${grossLabel} manually</button>
+                <button class="button do-api-refund">Refund ${grossLabel} via Stripe</button>
             </div>
             <div class="refund-actions" style="display:block">
                 <button class="button do-manual-refund">Second refund ${grossAmountText}</button>
@@ -33,8 +35,8 @@ function getActionMarkup(mode, grossAmountText) {
 
     return `
         <div class="refund-actions" style="display:block">
-            <button class="button do-manual-refund">Refund ${grossAmountText} manually</button>
-            <button class="button do-api-refund">Refund ${grossAmountText} via Stripe</button>
+            <button class="button do-manual-refund">Refund ${grossLabel} manually</button>
+            <button class="button do-api-refund">Refund ${grossLabel} via Stripe</button>
         </div>
     `;
 }
@@ -68,6 +70,7 @@ function createServer() {
         const boxDamageDefaultFee = params.get('boxDamageDefaultFee') || '0.00';
 
         const actionLayout = params.get('actionLayout') || 'single';
+        const currencySymbol = safeDecode(params.get('currencySymbol'), '$');
         const feeLabel = safeDecode(params.get('feeLabel'), 'Return Shipping');
         const boxDamageLabel = safeDecode(params.get('boxDamageLabel'), 'Retail Box Damage');
         const amountForLabelParam = params.get('amountForLabel');
@@ -85,7 +88,7 @@ function createServer() {
   <button class="refund-items">Refund</button>
   <div id="woocommerce-order-items">
     <input id="refund_amount" value="${grossAmount}" />
-    ${getActionMarkup(actionLayout, grossAmount)}
+    ${getActionMarkup(actionLayout, grossAmount, currencySymbol)}
   </div>
   <script>
     window.wrsConfig = {
@@ -100,7 +103,7 @@ function createServer() {
       }
     };
     window.woocommerce_admin_meta_boxes = {
-      currency_format_symbol: '${safeDecode(params.get('currencySymbol'), '$')}',
+      currency_format_symbol: '${currencySymbol}',
       currency_format_decimal_sep: '${safeDecode(params.get('currencyDecimal'), '.')}',
       currency_format_thousand_sep: '${safeDecode(params.get('currencyThousands'), ',')}',
       currency_format_num_decimals: ${precision},
@@ -217,8 +220,8 @@ test.describe('admin refund deductions', () => {
         await page.check('#wrs_apply_box_damage_fee');
         await page.fill('#wrs_box_damage_fee', '5.00');
 
-        await expect(page.locator('.do-manual-refund')).toHaveText('Refund $35.00 manually');
-        await expect(page.locator('.do-api-refund')).toHaveText('Refund $35.00 via Stripe');
+        await expect(page.locator('.do-manual-refund')).toHaveText('Refund $25.00 manually');
+        await expect(page.locator('.do-api-refund')).toHaveText('Refund $25.00 via Stripe');
     });
 
     test('blocks refund submission and shows inline error when deductions exceed gross refund', async ({ page }) => {

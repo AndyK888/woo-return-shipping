@@ -119,6 +119,8 @@ jobs:
             sleep 10
           done
 
+          DB_NAME="wp_test_${DB_NAME}_$(date +%s%N)"
+
           cd "$WP_ROOT"
           wp core download --version=6.5 --allow-root
           wp config create \
