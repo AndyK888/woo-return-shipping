@@ -46,15 +46,18 @@ class WRS_Checkout_Fee {
 			return;
 		}
 
+		$fee_label      = self::get_fee_label( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
+		$box_fee_label  = self::get_fee_label( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
+
 		$order->add_item(
 			WRS_Fee_Factory::create_hidden_fee_item(
-				get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+				$fee_label,
 				self::RETURN_SHIPPING_FEE_TYPE
 			)
 		);
 		$order->add_item(
 			WRS_Fee_Factory::create_hidden_fee_item(
-				get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
+				$box_fee_label,
 				self::BOX_DAMAGE_FEE_TYPE
 			)
 		);
@@ -79,8 +82,8 @@ class WRS_Checkout_Fee {
 		}
 
 		$hidden_fee_labels = array(
-			get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
-			get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
+			self::get_fee_label( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+			self::get_fee_label( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
 		);
 
 		foreach ( $total_rows as $key => $row ) {
@@ -158,5 +161,22 @@ class WRS_Checkout_Fee {
 		}
 
 		return 'yes' === $item->get_meta( '_wrs_fee' );
+	}
+
+	/**
+	 * Read a fee label option and ensure a non-empty fallback is used.
+	 *
+	 * @param string $option_name Option key.
+	 * @param string $default_label Default label text.
+	 * @return string
+	 */
+	private static function get_fee_label( string $option_name, string $default_label ): string {
+		$label = (string) get_option( $option_name, $default_label );
+
+		if ( '' === $label ) {
+			return $default_label;
+		}
+
+		return $label;
 	}
 }
