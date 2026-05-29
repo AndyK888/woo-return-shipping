@@ -496,10 +496,14 @@
             }
 
             if (window.Intl && Intl.NumberFormat) {
-                fixed = new Intl.NumberFormat(undefined, {
+                fixed = new Intl.NumberFormat('en', {
                     minimumFractionDigits: currency.precision,
                     maximumFractionDigits: currency.precision,
+                    useGrouping: false,
                 }).format(numeric);
+                if (currency.decimal !== '.') {
+                    fixed = fixed.replace('.', currency.decimal);
+                }
             } else {
                 fixed = numeric.toFixed(currency.precision);
                 if (currency.decimal !== '.') {
@@ -522,10 +526,15 @@
             }
 
             if (window.Intl && Intl.NumberFormat) {
-                return new Intl.NumberFormat(undefined, {
+                var fixedNum = new Intl.NumberFormat('en', {
                     minimumFractionDigits: currency.precision,
                     maximumFractionDigits: currency.precision,
+                    useGrouping: false,
                 }).format(amount);
+                if (currency.decimal !== '.') {
+                    fixedNum = fixedNum.replace('.', currency.decimal);
+                }
+                return fixedNum;
             }
 
             return Number(amount).toFixed(currency.precision);

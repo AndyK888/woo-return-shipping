@@ -43,8 +43,8 @@ class WRS_Refund_Handler {
 	 * @param array           $args   Refund arguments.
 	 */
 	public static function modify_refund_amount( WC_Order_Refund $refund, array $args ): void {
-		$return_shipping_label = self::get_fee_label( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
-		$box_damage_label      = self::get_fee_label( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
+		$return_shipping_label = WRS_Fee_Factory::get_fee_label( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
+		$box_damage_label      = WRS_Fee_Factory::get_fee_label( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
 		$return_shipping_fee   = self::get_posted_fee_amount( 'wrs_apply_fee', 'wrs_return_shipping_fee', $return_shipping_label );
 		$box_damage_fee        = self::get_posted_fee_amount( 'wrs_apply_box_damage_fee', 'wrs_box_damage_fee', $box_damage_label );
 		$refund_order          = self::get_refund_order( $refund, $args );
@@ -132,7 +132,7 @@ class WRS_Refund_Handler {
 			$applied_fees[] = sprintf(
 				/* translators: 1: fee label, 2: fee amount */
 				__( '%1$s %2$s', 'woo-return-shipping' ),
-				self::get_fee_label( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+				WRS_Fee_Factory::get_fee_label( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
 				wc_price( $return_shipping_fee )
 			);
 		}
@@ -141,7 +141,7 @@ class WRS_Refund_Handler {
 			$applied_fees[] = sprintf(
 				/* translators: 1: fee label, 2: fee amount */
 				__( '%1$s %2$s', 'woo-return-shipping' ),
-				self::get_fee_label( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
+				WRS_Fee_Factory::get_fee_label( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
 				wc_price( $box_damage_fee )
 			);
 		}
@@ -308,20 +308,5 @@ class WRS_Refund_Handler {
 		return null;
 	}
 
-	/**
-	 * Read fee label and normalize empty values to the configured default.
-	 *
-	 * @param string $option_name  Option key.
-	 * @param string $default_label Fallback label.
-	 * @return string
-	 */
-	private static function get_fee_label( string $option_name, string $default_label ): string {
-		$label = (string) get_option( $option_name, $default_label );
 
-		if ( '' === $label ) {
-			return $default_label;
-		}
-
-		return $label;
-	}
 }

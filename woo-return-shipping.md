@@ -153,6 +153,13 @@ npm run test:e2e
 
 ## Release Notes
 
+### 2.7.2
+
+- Fixed `wrs_tax_class` option handling to correctly apply merchant-configured tax classes to refund fee items.
+- Fixed refund email resending bug by resolving specific refund objects from email parameters first.
+- Hardcoded `'en'` locale and disabled grouping on fallback number formatters in `admin-refund.js` to ensure locale independence.
+- Consolidated `get_fee_label()` method across classes into a centralized static method in `WRS_Fee_Factory` to satisfy DRY principle.
+
 ### 2.7.1
 
 - Added PHPUnit regression coverage for deduction helpers and refund amount mutation.

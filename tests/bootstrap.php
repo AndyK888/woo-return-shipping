@@ -77,6 +77,7 @@ if ( ! class_exists( 'WC_Order_Item_Fee' ) ) {
 		private float $amount = 0.0;
 		private float $total = 0.0;
 		private string $tax_status = 'none';
+		private string $tax_class = '';
 		private array $meta = array();
 
 		public function set_name( string $name ): void {
@@ -109,6 +110,14 @@ if ( ! class_exists( 'WC_Order_Item_Fee' ) ) {
 
 		public function get_tax_status(): string {
 			return $this->tax_status;
+		}
+
+		public function set_tax_class( string $tax_class ): void {
+			$this->tax_class = $tax_class;
+		}
+
+		public function get_tax_class(): string {
+			return $this->tax_class;
 		}
 
 		public function add_meta_data( string $key, $value, bool $unique = false ): void {

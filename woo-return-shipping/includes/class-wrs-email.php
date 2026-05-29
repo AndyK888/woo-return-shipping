@@ -42,7 +42,12 @@ class WRS_Email {
 			return;
 		}
 
-		$refund = self::get_latest_refund( $order );
+		$refund = null;
+		if ( isset( $email->refund ) && $email->refund instanceof WC_Order_Refund ) {
+			$refund = $email->refund;
+		} else {
+			$refund = self::get_latest_refund( $order );
+		}
 
 		if ( ! $refund ) {
 			return;
