@@ -66,19 +66,18 @@ class WRS_Admin {
 			true
 		);
 
-		wp_localize_script(
-			'wrs-admin',
-			'wrsConfig',
-			array(
-				'defaultFee'          => floatval( get_option( 'wrs_default_fee', '10.00' ) ),
-				'feeLabel'            => get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
-				'boxDamageDefaultFee' => floatval( get_option( 'wrs_box_damage_default_fee', '0.00' ) ),
-				'boxDamageLabel'      => get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
-				'messages'            => array(
-					'combinedDeductionsExceedRefund' => __( 'Combined refund deductions cannot exceed the refund amount.', 'woo-return-shipping' ),
-					'invalidDeductionAmount'         => __( '%s amount must be a valid non-negative number.', 'woo-return-shipping' ),
-					'amountForLabel'                 => __( 'Amount for %s', 'woo-return-shipping' ),
-					'amountLabel'                    => __( '%s amount', 'woo-return-shipping' ),
+			wp_localize_script(
+				'wrs-admin',
+				'wrsConfig',
+				array(
+					'defaultFee'          => floatval( get_option( 'wrs_default_fee', '10.00' ) ),
+					'feeLabel'            => self::get_fee_label( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+					'boxDamageDefaultFee' => floatval( get_option( 'wrs_box_damage_default_fee', '0.00' ) ),
+					'boxDamageLabel'      => self::get_fee_label( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
+					'messages'            => array(
+						'combinedDeductionsExceedRefund' => __( 'Combined refund deductions cannot exceed the refund amount.', 'woo-return-shipping' ),
+						'invalidDeductionAmount' => __( '%s amount must be a valid non-negative number.', 'woo-return-shipping' ),
+						'amountForLabel'        => __( 'Amount for %s', 'woo-return-shipping' ),
 				),
 			)
 		);
@@ -92,14 +91,14 @@ class WRS_Admin {
 	public static function render_fee_input( $order_id ): void {
 		$order = wc_get_order( $order_id );
 		
-		if ( ! $order || 'shop_order_refund' === $order->get_type() ) {
+		if ( ! $order || is_a( $order, 'WC_Order_Refund' ) ) {
 			return;
 		}
 
 		$default_fee = floatval( get_option( 'wrs_default_fee', '10.00' ) );
-		$fee_label   = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
+		$fee_label          = self::get_fee_label( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
 		$box_damage_fee     = floatval( get_option( 'wrs_box_damage_default_fee', '0.00' ) );
-		$box_damage_label   = get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
+		$box_damage_label   = self::get_fee_label( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
 		$fee_amount_label   = sprintf( __( '%s amount', 'woo-return-shipping' ), $fee_label );
 		$box_damage_amount_label = sprintf( __( '%s amount', 'woo-return-shipping' ), $box_damage_label );
 		$currency_symbol = get_woocommerce_currency_symbol();
@@ -167,5 +166,22 @@ class WRS_Admin {
 			</td>
 		</tr>
 		<?php
+	}
+
+	/**
+	 * Read fee label option and fallback to default when empty.
+	 *
+	 * @param string $option_name  Option key.
+	 * @param string $default_text Default label text.
+	 * @return string
+	 */
+	private static function get_fee_label( string $option_name, string $default_text ): string {
+		$label = (string) get_option( $option_name, $default_text );
+
+		if ( '' === $label ) {
+			return $default_text;
+		}
+
+		return $label;
 	}
 }

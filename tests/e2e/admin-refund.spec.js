@@ -59,8 +59,8 @@ function createServer() {
         const actionLayout = params.get('actionLayout') || 'single';
         const feeLabel = decodeURIComponent(params.get('feeLabel') || 'Return Shipping');
         const boxDamageLabel = decodeURIComponent(params.get('boxDamageLabel') || 'Retail Box Damage');
-        const amountForLabel = decodeURIComponent(params.get('amountForLabel') || 'Amount for %s');
-        const amountLabel = decodeURIComponent(params.get('amountLabel') || '%s amount');
+        const amountForLabelParam = params.get('amountForLabel');
+        const amountForLabel = amountForLabelParam === null ? 'Amount for %s' : decodeURIComponent(amountForLabelParam);
 
         const html = `<!DOCTYPE html>
 <html>
@@ -84,7 +84,6 @@ function createServer() {
         combinedDeductionsExceedRefund: 'Combined refund deductions cannot exceed the refund amount.',
         invalidDeductionAmount: '%s amount must be a valid non-negative number.',
         amountForLabel: '${amountForLabel}',
-        amountLabel: '${amountLabel}'
       }
     };
     window.woocommerce_admin_meta_boxes = {
@@ -260,7 +259,7 @@ test.describe('admin refund deductions', () => {
 
     test('injects localized aria-label attributes for both refund inputs', async ({ page }) => {
         const query =
-            'feeLabel=Return%20Delivery&boxDamageLabel=Damage%20Fee&amountForLabel=Amount%20for%20%25s&amountLabel=Custom%20%25s%20amount&defaultFee=1';
+            'feeLabel=Return%20Delivery&boxDamageLabel=Damage%20Fee&amountForLabel=Amount%20for%20%25s&defaultFee=1';
 
         await mountRefundUi(page, serverUrl, query);
 

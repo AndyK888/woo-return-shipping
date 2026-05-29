@@ -14,13 +14,12 @@
             feeLabel: 'Return Shipping',
             boxDamageDefaultFee: 0.00,
             boxDamageLabel: 'Retail Box Damage',
-            messages: {
-                combinedDeductionsExceedRefund: 'Combined refund deductions cannot exceed the refund amount.',
-                invalidDeductionAmount: '%s amount must be a valid non-negative number.',
-                amountForLabel: 'Amount for %s',
-                amountLabel: '%s amount'
-            }
-        }, window.wrsConfig || {}),
+                messages: {
+                    combinedDeductionsExceedRefund: 'Combined refund deductions cannot exceed the refund amount.',
+                    invalidDeductionAmount: '%s amount must be a valid non-negative number.',
+                    amountForLabel: 'Amount for %s'
+                }
+            }, window.wrsConfig || {}),
         observing: false,
 
         init: function () {
@@ -92,9 +91,11 @@
         },
 
         doInject: function ($actions) {
-            var fee = parseFloat(this.config.defaultFee) || 10.00;
+            var parsedDefaultFee = parseFloat(this.config.defaultFee);
+            var parsedBoxDamageFee = parseFloat(this.config.boxDamageDefaultFee);
+            var fee = isFinite(parsedDefaultFee) ? parsedDefaultFee : 10.00;
             var feeLabel = this.config.feeLabel || 'Return Shipping';
-            var boxDamageFee = parseFloat(this.config.boxDamageDefaultFee) || 0.00;
+            var boxDamageFee = isFinite(parsedBoxDamageFee) ? parsedBoxDamageFee : 0.00;
             var boxDamageLabel = this.config.boxDamageLabel || 'Retail Box Damage';
             var currency = this.getCurrencyFormat();
             var step = this.getInputStep(currency);
@@ -487,7 +488,24 @@
                 return window.accounting.formatMoney(amount, currency);
             }
 
-            var fixed = amount.toFixed(currency.precision);
+            var numeric = Number(amount);
+            var fixed;
+
+            if (!isFinite(numeric)) {
+                numeric = 0;
+            }
+
+            if (window.Intl && Intl.NumberFormat) {
+                fixed = new Intl.NumberFormat(undefined, {
+                    minimumFractionDigits: currency.precision,
+                    maximumFractionDigits: currency.precision,
+                }).format(numeric);
+            } else {
+                fixed = numeric.toFixed(currency.precision);
+                if (currency.decimal !== '.') {
+                    fixed = fixed.replace('.', currency.decimal);
+                }
+            }
 
             if (currency.format.indexOf('%s') !== -1 && currency.format.indexOf('%v') !== -1) {
                 return currency.format.replace('%s', currency.symbol).replace('%v', fixed);
@@ -503,7 +521,14 @@
                 return window.accounting.formatNumber(amount, currency.precision, currency.thousand, currency.decimal);
             }
 
-            return amount.toFixed(currency.precision);
+            if (window.Intl && Intl.NumberFormat) {
+                return new Intl.NumberFormat(undefined, {
+                    minimumFractionDigits: currency.precision,
+                    maximumFractionDigits: currency.precision,
+                }).format(amount);
+            }
+
+            return Number(amount).toFixed(currency.precision);
         },
 
         replaceAmountInLabel: function (label, formattedMoney, formattedNumber) {

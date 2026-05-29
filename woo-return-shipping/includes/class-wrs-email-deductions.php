@@ -19,7 +19,7 @@ final class WRS_Email_Deductions {
 		$deductions = array();
 
 		foreach ( self::get_definitions() as $definition ) {
-			$label  = get_option( $definition['label_option'], $definition['default_label'] );
+			$label = self::get_fee_label( $definition['label_option'], $definition['default_label'] );
 			$amount = self::resolve_amount( $refund, $definition['meta_key'], $label, $definition['fee_type'] );
 
 			if ( $amount <= 0 ) {
@@ -34,6 +34,23 @@ final class WRS_Email_Deductions {
 		}
 
 		return $deductions;
+	}
+
+	/**
+	 * Read a fee label option and fallback to the default when empty.
+	 *
+	 * @param string $option_name  Option key.
+	 * @param string $default_text Default label text.
+	 * @return string
+	 */
+	private static function get_fee_label( string $option_name, string $default_text ): string {
+		$label = (string) get_option( $option_name, $default_text );
+
+		if ( '' === $label ) {
+			return $default_text;
+		}
+
+		return $label;
 	}
 
 	/**

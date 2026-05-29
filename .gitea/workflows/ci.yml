@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: PHP Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run unit tests
+        run: composer test
+
+  admin-ui:
+    name: Admin refund UI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run admin UI e2e tests
+        run: npm run test:e2e
+
+  woocommerce-refund-integration:
+    name: WooCommerce refund integration scenarios
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_test
+          MYSQL_USER: wp
+          MYSQL_PASSWORD: wp
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --user=root --password=root --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli
+
+      - name: Prepare WP CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o wp-cli.phar
+          chmod +x wp-cli.phar
+          sudo mv wp-cli.phar /usr/local/bin/wp
+
+      - name: Install WooCommerce and run refund scenarios
+        env:
+          DB_NAME: wp_test
+          DB_USER: wp
+          DB_PASSWORD: wp
+          DB_HOST: 127.0.0.1
+          WP_URL: http://localhost:8080
+        run: |
+          set -euo pipefail
+
+          WP_ROOT=/tmp/woo-return-shipping-ci
+          PLUGIN_ROOT="${GITEA_WORKSPACE:-${GITHUB_WORKSPACE:-$(pwd)}}"
+          mkdir -p "$WP_ROOT"
+
+          cd "$WP_ROOT"
+          wp core download --version=6.5 --allow-root
+          wp config create \
+            --dbname="$DB_NAME" \
+            --dbuser="$DB_USER" \
+            --dbpass="$DB_PASSWORD" \
+            --dbhost="$DB_HOST" \
+            --skip-check \
+            --allow-root
+          wp db create --allow-root
+          wp core install \
+            --url="$WP_URL" \
+            --title="WRS CI" \
+            --admin_user=admin \
+            --admin_password=admin123 \
+            --admin_email=admin@example.com \
+            --skip-email \
+            --allow-root
+
+          wp plugin install woocommerce --version=10.5.1 --activate --allow-root
+          cp -R "$PLUGIN_ROOT/woo-return-shipping" "$WP_ROOT/wp-content/plugins/woo-return-shipping"
+          wp plugin activate woo-return-shipping --allow-root
+
+          php "$PLUGIN_ROOT/tests/ci/woocommerce-refund-scenarios.php" "$WP_ROOT"
+          rm -rf "$WP_ROOT"

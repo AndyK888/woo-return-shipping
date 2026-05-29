@@ -48,4 +48,25 @@ final class WRS_Email_Deductions_Test extends TestCase {
 
 		$this->assertSame( array(), $deductions );
 	}
+
+	public function test_resolve_amount_uses_fee_type_when_label_is_empty(): void {
+		$GLOBALS['wrs_test_options']['wrs_fee_label'] = '';
+
+		$refund = new WC_Order_Refund( 30.0 );
+		$refund->add_meta_data( '_wrs_return_fee', '', true );
+		$refund->add_meta_data( '_wrs_box_damage_fee', '', true );
+
+		$fee_item = new WC_Order_Item_Fee();
+		$fee_item->set_name( 'unused' );
+		$fee_item->set_total( 12.0 );
+		$fee_item->set_amount( 12.0 );
+		$fee_item->add_meta_data( '_wrs_fee_type', 'return_shipping', true );
+		$refund->add_item( $fee_item );
+
+		$deductions = WRS_Email_Deductions::collect( $refund );
+
+		$this->assertCount( 1, $deductions );
+		$this->assertSame( 'Return Shipping', $deductions[0]['label'] );
+		$this->assertSame( 12.0, $deductions[0]['amount'] );
+	}
 }

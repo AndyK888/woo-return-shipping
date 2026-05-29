@@ -43,10 +43,11 @@ class WRS_Refund_Handler {
 	 * @param array           $args   Refund arguments.
 	 */
 	public static function modify_refund_amount( WC_Order_Refund $refund, array $args ): void {
-		$return_shipping_label = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
-		$box_damage_label      = get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
+		$return_shipping_label = self::get_fee_label( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
+		$box_damage_label      = self::get_fee_label( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
 		$return_shipping_fee   = self::get_posted_fee_amount( 'wrs_apply_fee', 'wrs_return_shipping_fee', $return_shipping_label );
 		$box_damage_fee        = self::get_posted_fee_amount( 'wrs_apply_box_damage_fee', 'wrs_box_damage_fee', $box_damage_label );
+		$refund_order          = self::get_refund_order( $refund, $args );
 
 		if ( $return_shipping_fee <= 0 && $box_damage_fee <= 0 ) {
 			return;
@@ -77,7 +78,8 @@ class WRS_Refund_Handler {
 
 		if ( $return_shipping_fee > 0 ) {
 			$refund->add_item(
-				WRS_Fee_Factory::create_refund_fee_item(
+				self::create_refund_fee_item(
+					$refund_order,
 					$return_shipping_label,
 					$return_shipping_fee,
 					'return_shipping'
@@ -87,7 +89,8 @@ class WRS_Refund_Handler {
 
 		if ( $box_damage_fee > 0 ) {
 			$refund->add_item(
-				WRS_Fee_Factory::create_refund_fee_item(
+				self::create_refund_fee_item(
+					$refund_order,
 					$box_damage_label,
 					$box_damage_fee,
 					'retail_box_damage'
@@ -129,7 +132,7 @@ class WRS_Refund_Handler {
 			$applied_fees[] = sprintf(
 				/* translators: 1: fee label, 2: fee amount */
 				__( '%1$s %2$s', 'woo-return-shipping' ),
-				get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
+				self::get_fee_label( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) ),
 				wc_price( $return_shipping_fee )
 			);
 		}
@@ -138,7 +141,7 @@ class WRS_Refund_Handler {
 			$applied_fees[] = sprintf(
 				/* translators: 1: fee label, 2: fee amount */
 				__( '%1$s %2$s', 'woo-return-shipping' ),
-				get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
+				self::get_fee_label( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) ),
 				wc_price( $box_damage_fee )
 			);
 		}
@@ -205,5 +208,120 @@ class WRS_Refund_Handler {
 			default:
 				return __( 'Invalid refund deductions.', 'woo-return-shipping' );
 		}
+	}
+
+	/**
+	 * Resolve the source order for a refund request.
+	 *
+	 * @param WC_Order_Refund $refund Refund object.
+	 * @param array           $args   Refund arguments passed to the action.
+	 * @return WC_Order|null
+	 */
+	private static function get_refund_order( WC_Order_Refund $refund, array $args ): ?WC_Order {
+		$possible_order_id = null;
+
+		if ( isset( $args['order_id'] ) && is_numeric( $args['order_id'] ) ) {
+			$possible_order_id = (int) $args['order_id'];
+		}
+
+		if ( null === $possible_order_id && method_exists( $refund, 'get_parent_id' ) ) {
+			$possible_order_id = (int) $refund->get_parent_id();
+		}
+
+		if ( ( null === $possible_order_id || $possible_order_id <= 0 ) && method_exists( $refund, 'get_order_id' ) ) {
+			$possible_order_id = (int) $refund->get_order_id();
+		}
+
+		if ( null === $possible_order_id || $possible_order_id <= 0 ) {
+			return null;
+		}
+
+		$parent_order = wc_get_order( $possible_order_id );
+
+		if ( ! $parent_order instanceof WC_Order || $parent_order instanceof WC_Order_Refund ) {
+			return null;
+		}
+
+		return $parent_order;
+	}
+
+	/**
+	 * Create a refund fee item and attach linkage metadata when possible.
+	 *
+	 * @param WC_Order|null $order    Source order.
+	 * @param string        $label    Fee label.
+	 * @param float         $amount   Fee amount.
+	 * @param string        $fee_type Fee type.
+	 * @return WC_Order_Item_Fee
+	 */
+	private static function create_refund_fee_item( ?WC_Order $order, string $label, float $amount, string $fee_type ): WC_Order_Item_Fee {
+		$fee_item = WRS_Fee_Factory::create_refund_fee_item(
+			$label,
+			$amount,
+			$fee_type
+		);
+
+		if ( null !== $order ) {
+			$parent_fee_item = self::find_order_fee_item( $order, $label, $fee_type );
+
+			if ( null !== $parent_fee_item ) {
+				$fee_item->add_meta_data( '_refunded_item_id', $parent_fee_item->get_id(), true );
+			}
+		}
+
+		return $fee_item;
+	}
+
+	/**
+	 * Find the matching managed fee item on the source order.
+	 *
+	 * @param WC_Order $order    Source order.
+	 * @param string   $label    Fee label.
+	 * @param string   $fee_type Fee type.
+	 * @return WC_Order_Item_Fee|null
+	 */
+	private static function find_order_fee_item( WC_Order $order, string $label, string $fee_type ): ?WC_Order_Item_Fee {
+		$label_text = trim( (string) $label );
+		if ( '' === $label_text ) {
+			return null;
+		}
+
+		foreach ( $order->get_items( 'fee' ) as $fee_item ) {
+			if ( ! $fee_item instanceof WC_Order_Item_Fee ) {
+				continue;
+			}
+
+			$item_fee_type = (string) $fee_item->get_meta( '_wrs_fee_type' );
+			$matches_type = '' !== $item_fee_type && $item_fee_type === $fee_type;
+
+			$item_name = trim( (string) $fee_item->get_name() );
+			$matches_label =
+				'' === $item_fee_type &&
+				'' !== $item_name &&
+				0 === strcasecmp( $item_name, $label_text );
+
+			if ( $matches_type || $matches_label ) {
+				return $fee_item;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Read fee label and normalize empty values to the configured default.
+	 *
+	 * @param string $option_name  Option key.
+	 * @param string $default_label Fallback label.
+	 * @return string
+	 */
+	private static function get_fee_label( string $option_name, string $default_label ): string {
+		$label = (string) get_option( $option_name, $default_label );
+
+		if ( '' === $label ) {
+			return $default_label;
+		}
+
+		return $label;
 	}
 }

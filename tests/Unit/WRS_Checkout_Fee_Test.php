@@ -13,7 +13,7 @@ final class WRS_Checkout_Fee_Test extends TestCase {
 		);
 	}
 
-	public function test_hide_fee_in_totals_does_not_hide_when_hidden_labels_are_empty(): void {
+	public function test_hide_fee_in_totals_uses_default_labels_when_hidden_labels_are_empty(): void {
 		$GLOBALS['wrs_test_options'] = array(
 			'wrs_fee_label'        => '',
 			'wrs_box_damage_label' => '',
@@ -30,7 +30,7 @@ final class WRS_Checkout_Fee_Test extends TestCase {
 
 		$result = WRS_Checkout_Fee::hide_fee_in_totals( $total_rows, null, 'incl' );
 
-		$this->assertArrayHasKey( 'fee-1', $result );
+		$this->assertArrayNotHasKey( 'fee-1', $result );
 		$this->assertArrayHasKey( 'subtotal', $result );
 	}
 
