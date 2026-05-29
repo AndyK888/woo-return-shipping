@@ -22,6 +22,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install zip utility
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends zip
+
       - name: Resolve version
         id: resolve
         run: |
