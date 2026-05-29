@@ -6,7 +6,7 @@ Tested up to: 6.9.1
 Requires PHP: 8.0
 WC requires at least: 8.0
 WC tested up to: 10.5.1
-Stable tag: 2.7.1
+Stable tag: 2.7.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -87,6 +87,12 @@ Yes. Go to WooCommerce → Settings → Advanced → Return Shipping to customiz
 4. Customer refund email with fee
 
 == Changelog ==
+
+= 2.7.3 =
+* Fix compatibility with PHP 8+ empty fee-label paths that could trigger fatal `ValueError` during refunds.
+* Preserve fee-label matching semantics while preventing empty-string search operations.
+* Improve refund admin precision handling for zero/variable decimal currency formatting.
+* Keep plugin version metadata synchronized across release files.
 
 = 2.7.1 =
 * Add PHPUnit and Playwright regression coverage for refund deduction logic.

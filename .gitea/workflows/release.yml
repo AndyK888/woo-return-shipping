@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag or version (for example 2.7.3 or v2.7.3)
+        required: false
+        default: ""
+
+jobs:
+  build-release-artifact:
+    name: Build WordPress plugin zip
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: resolve
+        run: |
+          set -euo pipefail
+
+          VERSION=""
+          EVENT_NAME="${{ github.event_name }}"
+
+          if [ "$EVENT_NAME" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          elif [ "$EVENT_NAME" = "push" ]; then
+            VERSION="${GITHUB_REF_NAME:-}"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          fi
+
+          if [ -z "$VERSION" ]; then
+            VERSION="$(grep -m1 -oP \"(?m)^\\s*\\* Version:\\s*\\K[0-9]+\\.[0-9]+\\.[0-9]+\" woo-return-shipping/woo-return-shipping.php)"
+          fi
+
+          VERSION="${VERSION#v}"
+          ZIP_NAME="woo-return-shipping-${VERSION}.zip"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Build plugin zip
+        id: package
+        run: |
+          set -euo pipefail
+          ZIP_NAME="${{ steps.resolve.outputs.zip_name }}"
+
+          zip -r "$ZIP_NAME" woo-return-shipping \
+            -x "woo-return-shipping/.DS_Store" \
+            -x "woo-return-shipping/.git/*" \
+            -x "woo-return-shipping/.worktrees/*" \
+            -x "woo-return-shipping/test-results/*" \
+            -x "woo-return-shipping/.phpunit.cache/*" \
+            -x "woo-return-shipping/node_modules/*"
+
+          echo "zip_path=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: woo-return-shipping-${{ steps.resolve.outputs.version }}
+          path: ${{ steps.package.outputs.zip_path }}
+          retention-days: 90
