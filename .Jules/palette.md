@@ -1,0 +1,3 @@
+## 2024-05-29 - Accessibility patterns for injected financial recalculations
+**Learning:** When developing custom WooCommerce refund plugins that calculate net values in the DOM dynamically, the wrapper container must use `aria-live="polite"` so screen readers announce changes. Additionally, validation messages that toggle visibility must use `role="alert"`. This guarantees blind users receive real-time financial updates to parallel visual users without needing to refocus.
+**Action:** Always add `aria-live="polite"` on dynamically recalculating financial blocks and `role="alert"` on dynamically shown validation errors. Ensure JavaScript DOM injection closely matches the server-rendered HTML fallback.
