@@ -45,8 +45,8 @@ jobs:
           fi
 
           if [ -z "$VERSION" ]; then
-            VERSION="$(grep -m1 '^[[:space:]]*\\* Version:' woo-return-shipping/woo-return-shipping.php \
-              | sed -E 's/^[[:space:]]*\\* Version:[[:space:]]*//; s/[[:space:]].*$//' || true)"
+            VERSION="$(grep -m1 '^[[:space:]]*\* Version:' woo-return-shipping/woo-return-shipping.php \
+              | sed -E 's/^[[:space:]]*\* Version:[[:space:]]*//; s/[[:space:]].*$//' || true)"
           fi
 
           if [ -z "$VERSION" ]; then
