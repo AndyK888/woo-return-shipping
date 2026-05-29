@@ -62,7 +62,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 --user=root --password=root --silent"
+          --health-cmd="mysqladmin ping -h localhost --user=root --password=root --silent"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
@@ -93,7 +93,10 @@ jobs:
           DB_NAME: wp_test
           DB_USER: wp
           DB_PASSWORD: wp
-          DB_HOST: 127.0.0.1
+          DB_HOST: mysql
+          DB_PORT: 3306
+          DB_ROOT_USER: root
+          DB_ROOT_PASSWORD: root
           WP_URL: http://localhost:8080
         run: |
           set -euo pipefail
@@ -101,6 +104,20 @@ jobs:
           WP_ROOT=/tmp/woo-return-shipping-ci
           PLUGIN_ROOT="${GITEA_WORKSPACE:-${GITHUB_WORKSPACE:-$(pwd)}}"
           mkdir -p "$WP_ROOT"
+
+          for attempt in 1 2 3 4 5 6; do
+            if mysqladmin ping -h "$DB_HOST" -P "$DB_PORT" -u "$DB_ROOT_USER" -p"$DB_ROOT_PASSWORD" --silent; then
+                break
+            fi
+
+            if [ "$attempt" -eq 6 ]; then
+                echo "MySQL service not ready after 60 seconds"
+                exit 1
+            fi
+
+            echo "Waiting for MySQL service (attempt $attempt/6)"
+            sleep 10
+          done
 
           cd "$WP_ROOT"
           wp core download --version=6.5 --allow-root

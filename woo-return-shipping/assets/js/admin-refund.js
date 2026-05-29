@@ -539,15 +539,21 @@
             var patterns = this.getAmountPatterns();
 
             if (patterns.symbolBefore.test(label)) {
-                return label.replace(patterns.symbolBefore, formattedMoney);
+                return label.replace(patterns.symbolBefore, function () {
+                    return formattedMoney;
+                });
             }
 
             if (patterns.symbolAfter.test(label)) {
-                return label.replace(patterns.symbolAfter, formattedMoney);
+                return label.replace(patterns.symbolAfter, function () {
+                    return formattedMoney;
+                });
             }
 
             if (patterns.amountOnly.test(label)) {
-                return label.replace(patterns.amountOnly, formattedNumber);
+                return label.replace(patterns.amountOnly, function () {
+                    return formattedNumber;
+                });
             }
 
             return label;

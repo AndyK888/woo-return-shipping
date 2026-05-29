@@ -259,7 +259,7 @@ test.describe('admin refund deductions', () => {
 
         await expect(page.locator('.refund-actions')).toHaveCount(2);
         await expect(page.locator('.refund-actions:visible')).toHaveCount(0);
-        await expect(page.locator('#wrs_fee-container')).toBeVisible();
+        await expect(page.locator('#wrs-fee-container')).toBeVisible();
     });
 
     test('handles multiple .refund-actions rows in update flow', async ({ page }) => {
