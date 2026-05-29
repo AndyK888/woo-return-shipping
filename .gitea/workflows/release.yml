@@ -33,13 +33,13 @@ jobs:
           if [ "$EVENT_NAME" = "release" ]; then
             VERSION="${{ github.event.release.tag_name }}"
           elif [ "$EVENT_NAME" = "push" ]; then
-            VERSION="${GITHUB_REF_NAME:-}"
+            VERSION="${GITHUB_REF_NAME:-${GITHUB_REF##*/}}"
           elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.tag }}"
           fi
 
           if [ -z "$VERSION" ]; then
-            VERSION="$(grep -m1 -oP \"(?m)^\\s*\\* Version:\\s*\\K[0-9]+\\.[0-9]+\\.[0-9]+\" woo-return-shipping/woo-return-shipping.php)"
+            VERSION="$(grep -m1 '^\\* Version:' woo-return-shipping/woo-return-shipping.php | sed -E 's/^[[:space:]]*\\* Version:[[:space:]]*//; s/[[:space:]].*$//')"
           fi
 
           VERSION="${VERSION#v}"
