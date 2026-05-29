@@ -124,7 +124,7 @@ jobs:
             DROP DATABASE IF EXISTS \`$DB_NAME\`;
             CREATE DATABASE \`$DB_NAME\`;
           SQL
-          wp core download --version=6.5 --allow-root
+          wp core download --version=6.8 --allow-root
           wp config create \
             --dbname="$DB_NAME" \
             --dbuser="$DB_USER" \
