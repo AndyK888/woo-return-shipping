@@ -160,12 +160,15 @@ npm run test:e2e
 - Hardcoded `'en'` locale and disabled grouping on fallback number formatters in `admin-refund.js` to ensure locale independence.
 - Consolidated `get_fee_label()` method across classes into a centralized static method in `WRS_Fee_Factory` to satisfy DRY principle.
 
-### 2.7.3
+### 2.7.4
 
 - Synchronized version metadata in plugin headers, `readme.txt`, and release notes.
 - Added protections for empty-fee-label matching to avoid PHP 8+ `ValueError` failures during refunds.
 - Updated admin refund precision behavior for zero- and multi-decimal currencies.
 - Improved compatibility with current WordPress and WooCommerce metadata expectations.
+
+### 2.7.3
+
 
 ### 2.7.1
 
