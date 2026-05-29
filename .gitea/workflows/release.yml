@@ -71,7 +71,7 @@ jobs:
           echo "zip_path=$ZIP_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Upload zip artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: woo-return-shipping-${{ steps.resolve.outputs.version }}
           path: ${{ steps.package.outputs.zip_path }}
