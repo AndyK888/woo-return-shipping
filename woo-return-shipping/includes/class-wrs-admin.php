@@ -77,6 +77,8 @@ class WRS_Admin {
 				'messages'            => array(
 					'combinedDeductionsExceedRefund' => __( 'Combined refund deductions cannot exceed the refund amount.', 'woo-return-shipping' ),
 					'invalidDeductionAmount'         => __( '%s amount must be a valid non-negative number.', 'woo-return-shipping' ),
+					'amountForLabel'                 => __( 'Amount for %s', 'woo-return-shipping' ),
+					'amountLabel'                    => __( '%s amount', 'woo-return-shipping' ),
 				),
 			)
 		);
@@ -96,24 +98,56 @@ class WRS_Admin {
 
 		$default_fee = floatval( get_option( 'wrs_default_fee', '10.00' ) );
 		$fee_label   = get_option( 'wrs_fee_label', __( 'Return Shipping', 'woo-return-shipping' ) );
+		$box_damage_fee     = floatval( get_option( 'wrs_box_damage_default_fee', '0.00' ) );
+		$box_damage_label   = get_option( 'wrs_box_damage_label', __( 'Retail Box Damage', 'woo-return-shipping' ) );
+		$fee_amount_label   = sprintf( __( '%s amount', 'woo-return-shipping' ), $fee_label );
+		$box_damage_amount_label = sprintf( __( '%s amount', 'woo-return-shipping' ), $box_damage_label );
+		$currency_symbol = get_woocommerce_currency_symbol();
+		if ( '' === $currency_symbol ) {
+			$currency_symbol = '$';
+		}
+
+		$precision = (int) wc_get_price_decimals();
+		$step      = $precision <= 0 ? '1' : number_format( pow( 10, -$precision ), $precision, '.', '' );
 		?>
 		<tr class="wrs-fee-row" style="display: none; background: #fffbeb;">
 			<td colspan="100%" style="padding: 15px !important;">
 				<div class="wrs-fee-container" style="border: 2px solid #f0d866; border-radius: 6px; padding: 15px; background: #fffbeb;">
-					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-						<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
-							<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px;">
-							<?php echo esc_html( $fee_label ); ?>
-						</label>
-						<div style="display: flex; align-items: center;">
-							<span style="color: #c00; font-weight: bold; margin-right: 4px;">−$</span>
-							<input type="number" 
-								id="wrs_return_shipping_fee" 
-								name="wrs_return_shipping_fee" 
-								value="<?php echo esc_attr( number_format( $default_fee, 2, '.', '' ) ); ?>" 
-								step="0.01" 
-								min="0"
-								style="width: 80px; text-align: right; padding: 5px;">
+					<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+						<div style="display: flex; justify-content: space-between; align-items: center;">
+							<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
+								<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px;">
+								<?php echo esc_html( $fee_label ); ?>
+							</label>
+							<div style="display: flex; align-items: center;">
+								<span aria-hidden="true" style="color: #c00; font-weight: bold; margin-right: 4px;">−<?php echo esc_html( $currency_symbol ); ?></span>
+								<input type="number"
+									aria-label="<?php echo esc_attr( $fee_amount_label ); ?>"
+									id="wrs_return_shipping_fee"
+									name="wrs_return_shipping_fee"
+									value="<?php echo esc_attr( number_format( $default_fee, $precision, '.', '' ) ); ?>"
+									step="<?php echo esc_attr( $step ); ?>"
+									min="0"
+									style="width: 80px; text-align: right; padding: 5px;">
+							</div>
+						</div>
+						<div style="display: flex; justify-content: space-between; align-items: center;">
+							<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
+								<input type="checkbox" id="wrs_apply_box_damage_fee" name="wrs_apply_box_damage_fee" value="1" style="width: 18px; height: 18px;">
+								<?php echo esc_html( $box_damage_label ); ?>
+							</label>
+							<div style="display: flex; align-items: center;">
+								<span aria-hidden="true" style="color: #c00; font-weight: bold; margin-right: 4px;">−<?php echo esc_html( $currency_symbol ); ?></span>
+								<input type="number"
+									aria-label="<?php echo esc_attr( $box_damage_amount_label ); ?>"
+									id="wrs_box_damage_fee"
+									name="wrs_box_damage_fee"
+									value="<?php echo esc_attr( number_format( $box_damage_fee, $precision, '.', '' ) ); ?>"
+									step="<?php echo esc_attr( $step ); ?>"
+									min="0"
+									disabled
+									style="width: 80px; text-align: right; padding: 5px;">
+							</div>
 						</div>
 					</div>
 					<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">

@@ -84,12 +84,20 @@ class WRS_Checkout_Fee {
 		);
 
 		foreach ( $total_rows as $key => $row ) {
-			if ( strpos( $key, 'fee' ) !== false && isset( $row['label'] ) ) {
-				foreach ( $hidden_fee_labels as $hidden_fee_label ) {
-					if ( false !== strpos( $row['label'], $hidden_fee_label ) ) {
-						unset( $total_rows[ $key ] );
-						break;
-					}
+			$row_label = isset( $row['label'] ) ? (string) $row['label'] : '';
+
+			if ( strpos( $key, 'fee' ) === false || '' === $row_label ) {
+				continue;
+			}
+
+			foreach ( $hidden_fee_labels as $hidden_fee_label ) {
+				if ( '' === (string) $hidden_fee_label ) {
+					continue;
+				}
+
+				if ( false !== strpos( $row_label, (string) $hidden_fee_label ) ) {
+					unset( $total_rows[ $key ] );
+					break;
 				}
 			}
 		}
@@ -105,8 +113,12 @@ class WRS_Checkout_Fee {
 	 * @param array                         $types Item types.
 	 * @return array
 	 */
-	public static function filter_order_items( array $items, $order, array $types ): array {
+	public static function filter_order_items( array $items, $order, array $types = array() ): array {
 		if ( is_admin() ) {
+			return $items;
+		}
+
+		if ( ! empty( $types ) && ! in_array( 'fee', $types, true ) ) {
 			return $items;
 		}
 

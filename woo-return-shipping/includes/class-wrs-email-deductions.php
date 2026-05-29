@@ -83,10 +83,11 @@ final class WRS_Email_Deductions {
 				continue;
 			}
 
-			$item_name           = $item->get_name();
+			$item_name           = (string) $item->get_name();
+			$label_text          = (string) $label;
 			$matches_fee_type    = $fee_type === $item->get_meta( '_wrs_fee_type' );
-			$matches_label       = false !== stripos( $item_name, $label );
-			$matches_label_alias = false !== stripos( $label, $item_name );
+			$matches_label       = '' !== $item_name && '' !== $label_text && false !== stripos( $item_name, $label_text );
+			$matches_label_alias = '' !== $item_name && '' !== $label_text && false !== stripos( $label_text, $item_name );
 
 			if ( $matches_fee_type || $matches_label || $matches_label_alias ) {
 				$total = abs( (float) $item->get_total() );

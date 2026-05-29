@@ -6,11 +6,63 @@ const { test, expect } = require('@playwright/test');
 const pluginScriptPath = path.resolve(__dirname, '../../woo-return-shipping/assets/js/admin-refund.js');
 const jqueryPath = require.resolve('jquery/dist/jquery.min.js');
 
+function getActionMarkup(mode, grossAmountText) {
+    if (mode === 'all-hidden') {
+        return `
+            <div class="refund-actions" style="display:none">
+                <button class="button do-manual-refund">Refund ${grossAmountText} manually</button>
+                <button class="button do-api-refund">Refund ${grossAmountText} via Stripe</button>
+            </div>
+            <div class="refund-actions" style="display:none">
+                <a class="button do-api-refund" href="#">Refund ${grossAmountText} via PayPal</a>
+            </div>
+        `;
+    }
+
+    if (mode === 'multiple-visible') {
+        return `
+            <div class="refund-actions" style="display:block">
+                <button class="button do-manual-refund">Refund ${grossAmountText} manually</button>
+                <button class="button do-api-refund">Refund ${grossAmountText} via Stripe</button>
+            </div>
+            <div class="refund-actions" style="display:block">
+                <button class="button do-manual-refund">Second refund ${grossAmountText}</button>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="refund-actions" style="display:block">
+            <button class="button do-manual-refund">Refund ${grossAmountText} manually</button>
+            <button class="button do-api-refund">Refund ${grossAmountText} via Stripe</button>
+        </div>
+    `;
+}
+
 function createServer() {
     let requestCount = 0;
     let lastRequestBody = '';
 
-    const html = `<!DOCTYPE html>
+    const server = http.createServer((req, res) => {
+        const requestUrl = new URL(req.url, 'http://127.0.0.1');
+        const params = requestUrl.searchParams;
+        const pathname = requestUrl.pathname;
+
+        const decimals = params.get('currency_format_num_decimals');
+        const parsedDecimals = decimals === null || decimals === '' ? 2 : parseInt(decimals, 10);
+        const precision = Number.isNaN(parsedDecimals) ? 2 : parsedDecimals;
+
+        const grossAmount = params.get('grossAmount') || '40.00';
+        const defaultFee = params.get('defaultFee') || '10.00';
+        const boxDamageDefaultFee = params.get('boxDamageDefaultFee') || '0.00';
+
+        const actionLayout = params.get('actionLayout') || 'single';
+        const feeLabel = decodeURIComponent(params.get('feeLabel') || 'Return Shipping');
+        const boxDamageLabel = decodeURIComponent(params.get('boxDamageLabel') || 'Retail Box Damage');
+        const amountForLabel = decodeURIComponent(params.get('amountForLabel') || 'Amount for %s');
+        const amountLabel = decodeURIComponent(params.get('amountLabel') || '%s amount');
+
+        const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -19,29 +71,28 @@ function createServer() {
 <body>
   <button class="refund-items">Refund</button>
   <div id="woocommerce-order-items">
-    <input id="refund_amount" value="40.00" />
-    <div class="refund-actions" style="display:block">
-      <button class="button do-manual-refund">Refund $40.00 manually</button>
-      <button class="button do-api-refund">Refund $40.00 via Stripe</button>
-    </div>
+    <input id="refund_amount" value="${grossAmount}" />
+    ${getActionMarkup(actionLayout, grossAmount)}
   </div>
   <script>
     window.wrsConfig = {
-      defaultFee: 10.00,
-      feeLabel: 'Return Shipping',
-      boxDamageDefaultFee: 0.00,
-      boxDamageLabel: 'Retail Box Damage',
+      defaultFee: ${defaultFee},
+      feeLabel: '${feeLabel}',
+      boxDamageDefaultFee: ${boxDamageDefaultFee},
+      boxDamageLabel: '${boxDamageLabel}',
       messages: {
         combinedDeductionsExceedRefund: 'Combined refund deductions cannot exceed the refund amount.',
-        invalidDeductionAmount: 'Deduction amounts must be valid non-negative numbers.'
+        invalidDeductionAmount: '%s amount must be a valid non-negative number.',
+        amountForLabel: '${amountForLabel}',
+        amountLabel: '${amountLabel}'
       }
     };
     window.woocommerce_admin_meta_boxes = {
-      currency_format_symbol: '$',
-      currency_format_decimal_sep: '.',
-      currency_format_thousand_sep: ',',
-      currency_format_num_decimals: 2,
-      currency_format: '%s%v'
+      currency_format_symbol: '${decodeURIComponent(params.get('currencySymbol') || '$')}',
+      currency_format_decimal_sep: '${decodeURIComponent(params.get('currencyDecimal') || '.')}',
+      currency_format_thousand_sep: '${decodeURIComponent(params.get('currencyThousands') || ',')}',
+      currency_format_num_decimals: ${precision},
+      currency_format: '${decodeURIComponent(params.get('currencyFormat') || '%s%v')}'
     };
   </script>
   <script src="/jquery.js"></script>
@@ -61,26 +112,25 @@ function createServer() {
 </body>
 </html>`;
 
-    const server = http.createServer((req, res) => {
-        if (req.url === '/') {
+        if (pathname === '/') {
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(html);
             return;
         }
 
-        if (req.url === '/jquery.js') {
+        if (pathname === '/jquery.js') {
             res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
             res.end(fs.readFileSync(jqueryPath));
             return;
         }
 
-        if (req.url === '/admin-refund.js') {
+        if (pathname === '/admin-refund.js') {
             res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
             res.end(fs.readFileSync(pluginScriptPath));
             return;
         }
 
-        if (req.url === '/refund') {
+        if (pathname === '/refund') {
             req.on('data', (chunk) => {
                 lastRequestBody += chunk.toString();
             });
@@ -92,9 +142,14 @@ function createServer() {
             return;
         }
 
-        if (req.url === '/request-count') {
+        if (pathname === '/request-count') {
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({ requestCount, lastRequestBody }));
+            return;
+        }
+
+        if (pathname === '/favicon.ico') {
+            res.writeHead(204);
             return;
         }
 
@@ -110,8 +165,9 @@ function createServer() {
     };
 }
 
-async function mountRefundUi(page, serverUrl) {
-    await page.goto(serverUrl);
+async function mountRefundUi(page, serverUrl, query = '') {
+    const queryPrefix = query ? `?${query}` : '';
+    await page.goto(`${serverUrl}${queryPrefix}`);
     await page.click('.refund-items');
     await expect(page.locator('#wrs-fee-container')).toBeVisible();
 }
@@ -126,7 +182,7 @@ test.describe('admin refund deductions', () => {
         await new Promise((resolve) => {
             fixture.server.listen(0, '127.0.0.1', () => {
                 port = fixture.server.address().port;
-                serverUrl = `http://127.0.0.1:${port}/`;
+                serverUrl = `http://127.0.0.1:${port}`;
                 resolve();
             });
         });
@@ -149,12 +205,14 @@ test.describe('admin refund deductions', () => {
         await page.check('#wrs_apply_box_damage_fee');
         await page.fill('#wrs_box_damage_fee', '5.00');
 
-        await expect(page.locator('.do-manual-refund')).toHaveText('Refund $25.00 manually');
-        await expect(page.locator('.do-api-refund')).toHaveText('Refund $25.00 via Stripe');
+        await expect(page.locator('.do-manual-refund')).toHaveText('Refund $35.00 manually');
+        await expect(page.locator('.do-api-refund')).toHaveText('Refund $35.00 via Stripe');
     });
 
     test('blocks refund submission and shows inline error when deductions exceed gross refund', async ({ page }) => {
         await mountRefundUi(page, serverUrl);
+        const baseCount = fixture.getState().requestCount;
+
         await page.fill('#refund_amount', '10.00');
         await page.fill('#wrs_return_shipping_fee', '7.00');
         await page.check('#wrs_apply_box_damage_fee');
@@ -166,6 +224,47 @@ test.describe('admin refund deductions', () => {
 
         await page.click('.do-manual-refund', { force: true });
 
-        await expect.poll(() => fixture.getState().requestCount).toBe(0);
+        await expect.poll(() => fixture.getState().requestCount - baseCount).toBe(0);
+    });
+
+    test('uses zero-decimal currency precision for step and amount formatting', async ({ page }) => {
+        await mountRefundUi(page, serverUrl, 'currency_format_num_decimals=0&grossAmount=40&defaultFee=12.00');
+
+        await expect(page.locator('#wrs_return_shipping_fee')).toHaveAttribute('step', '1');
+        await expect(page.locator('#wrs_return_shipping_fee')).toHaveValue('12');
+        await expect(page.locator('.do-manual-refund')).toHaveText('Refund $28 manually');
+    });
+
+    test('updates button labels using multi-decimal currency parsing', async ({ page }) => {
+        await mountRefundUi(page, serverUrl, 'currency_format_num_decimals=3&grossAmount=40.000&defaultFee=1.00');
+
+        await expect(page.locator('#wrs_return_shipping_fee')).toHaveValue('1.000');
+        await expect(page.locator('.do-manual-refund')).toHaveText('Refund $39.000 manually');
+    });
+
+    test('falls back to all .refund-actions when none are visible', async ({ page }) => {
+        await mountRefundUi(page, serverUrl, 'actionLayout=all-hidden&defaultFee=0');
+
+        await expect(page.locator('.refund-actions')).toHaveCount(2);
+        await expect(page.locator('.refund-actions:visible')).toHaveCount(0);
+        await expect(page.locator('#wrs_fee-container')).toBeVisible();
+    });
+
+    test('handles multiple .refund-actions rows in update flow', async ({ page }) => {
+        await mountRefundUi(page, serverUrl, 'actionLayout=multiple-visible&grossAmount=40.00&defaultFee=5.00');
+
+        await expect(page.locator('.do-manual-refund')).toHaveCount(2);
+        await expect(page.locator('.do-manual-refund').first()).toHaveText('Refund $35.00 manually');
+        await expect(page.locator('.do-manual-refund').nth(1)).toHaveText('Second refund 35.00');
+    });
+
+    test('injects localized aria-label attributes for both refund inputs', async ({ page }) => {
+        const query =
+            'feeLabel=Return%20Delivery&boxDamageLabel=Damage%20Fee&amountForLabel=Amount%20for%20%25s&amountLabel=Custom%20%25s%20amount&defaultFee=1';
+
+        await mountRefundUi(page, serverUrl, query);
+
+        await expect(page.locator('#wrs_return_shipping_fee')).toHaveAttribute('aria-label', 'Amount for Return Delivery');
+        await expect(page.locator('#wrs_box_damage_fee')).toHaveAttribute('aria-label', 'Amount for Damage Fee');
     });
 });

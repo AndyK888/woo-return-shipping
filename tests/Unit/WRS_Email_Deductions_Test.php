@@ -29,4 +29,23 @@ final class WRS_Email_Deductions_Test extends TestCase {
 		$this->assertSame( 'Retail Box Damage', $deductions[1]['label'] );
 		$this->assertSame( 5.0, $deductions[1]['amount'] );
 	}
+
+	public function test_resolve_amount_does_not_throw_with_empty_label_or_fee_name(): void {
+		$GLOBALS['wrs_test_options']['wrs_fee_label'] = '';
+
+		$refund = new WC_Order_Refund( 30.0 );
+		$refund->add_meta_data( '_wrs_return_fee', '', true );
+		$refund->add_meta_data( '_wrs_box_damage_fee', '', true );
+
+		$fee_item = new WC_Order_Item_Fee();
+		$fee_item->set_name( '' );
+		$fee_item->set_total( 12.0 );
+		$fee_item->set_amount( 12.0 );
+		$fee_item->add_meta_data( '_wrs_fee_type', 'other_fee', true );
+		$refund->add_item( $fee_item );
+
+		$deductions = WRS_Email_Deductions::collect( $refund );
+
+		$this->assertSame( array(), $deductions );
+	}
 }
