@@ -78,6 +78,10 @@ class WRS_Admin {
 						'combinedDeductionsExceedRefund' => __( 'Combined refund deductions cannot exceed the refund amount.', 'woo-return-shipping' ),
 						'invalidDeductionAmount' => __( '%s amount must be a valid non-negative number.', 'woo-return-shipping' ),
 						'amountForLabel'        => __( 'Amount for %s', 'woo-return-shipping' ),
+						'grossRefund'          => __( 'Gross Refund:', 'woo-return-shipping' ),
+						'totalDeductions'      => __( 'Total Deductions:', 'woo-return-shipping' ),
+						'netToCustomer'        => __( 'Net to Customer:', 'woo-return-shipping' ),
+						'gatewayAmountNotice'   => __( 'The net amount will be sent to the payment gateway.', 'woo-return-shipping' ),
 				),
 			)
 		);
@@ -115,32 +119,33 @@ class WRS_Admin {
 					<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
 						<div style="display: flex; justify-content: space-between; align-items: center;">
 							<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
-								<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px;">
+								<input type="checkbox" id="wrs_apply_fee_fallback" name="wrs_apply_fee_fallback" value="1" checked style="width: 18px; height: 18px;" disabled>
 								<?php echo esc_html( $fee_label ); ?>
 							</label>
 							<div style="display: flex; align-items: center;">
 								<span aria-hidden="true" style="color: #c00; font-weight: bold; margin-right: 4px;">−<?php echo esc_html( $currency_symbol ); ?></span>
 								<input type="number"
 									aria-label="<?php echo esc_attr( $fee_amount_label ); ?>"
-									id="wrs_return_shipping_fee"
-									name="wrs_return_shipping_fee"
+									id="wrs_return_shipping_fee_fallback"
+									name="wrs_return_shipping_fee_fallback"
 									value="<?php echo esc_attr( number_format( $default_fee, $precision, '.', '' ) ); ?>"
 									step="<?php echo esc_attr( $step ); ?>"
 									min="0"
+									disabled
 									style="width: 80px; text-align: right; padding: 5px;">
 							</div>
 						</div>
 						<div style="display: flex; justify-content: space-between; align-items: center;">
 							<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
-								<input type="checkbox" id="wrs_apply_box_damage_fee" name="wrs_apply_box_damage_fee" value="1" style="width: 18px; height: 18px;">
+								<input type="checkbox" id="wrs_apply_box_damage_fee_fallback" name="wrs_apply_box_damage_fee_fallback" value="1" style="width: 18px; height: 18px;" disabled>
 								<?php echo esc_html( $box_damage_label ); ?>
 							</label>
 							<div style="display: flex; align-items: center;">
 								<span aria-hidden="true" style="color: #c00; font-weight: bold; margin-right: 4px;">−<?php echo esc_html( $currency_symbol ); ?></span>
 								<input type="number"
 									aria-label="<?php echo esc_attr( $box_damage_amount_label ); ?>"
-									id="wrs_box_damage_fee"
-									name="wrs_box_damage_fee"
+									id="wrs_box_damage_fee_fallback"
+									name="wrs_box_damage_fee_fallback"
 									value="<?php echo esc_attr( number_format( $box_damage_fee, $precision, '.', '' ) ); ?>"
 									step="<?php echo esc_attr( $step ); ?>"
 									min="0"
@@ -151,11 +156,15 @@ class WRS_Admin {
 					</div>
 					<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">
 						<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-							<span style="color: #666;">Gross Refund:</span>
+							<span style="color: #666;"><?php esc_html_e( 'Gross Refund:', 'woo-return-shipping' ); ?></span>
 							<span id="wrs_gross">$0.00</span>
 						</div>
+						<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+							<span style="color: #666;"><?php esc_html_e( 'Total Deductions:', 'woo-return-shipping' ); ?></span>
+							<span id="wrs_total_deductions" style="color: #c00;">$0.00</span>
+						</div>
 						<div style="display: flex; justify-content: space-between;">
-							<strong style="color: #155724;">Net to Customer:</strong>
+							<strong style="color: #155724;"><?php esc_html_e( 'Net to Customer:', 'woo-return-shipping' ); ?></strong>
 							<strong id="wrs_net" style="color: #155724; font-size: 16px;">$0.00</strong>
 						</div>
 					</div>

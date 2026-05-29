@@ -104,6 +104,10 @@
             var feeInputAriaLabel = this.escapeAttribute(this.formatTemplate(this.config.messages.amountForLabel, feeLabel));
             var boxDamageInputAriaLabel = this.escapeAttribute(this.formatTemplate(this.config.messages.amountForLabel, boxDamageLabel));
             var escapedCurrencySymbol = this.escapeHtml(currency.symbol);
+            var grossLabel = this.escapeHtml(this.config.messages.grossRefund || 'Gross Refund:');
+            var totalDeductionsLabel = this.escapeHtml(this.config.messages.totalDeductions || 'Total Deductions:');
+            var netToCustomerLabel = this.escapeHtml(this.config.messages.netToCustomer || 'Net to Customer:');
+            var gatewayAmountNotice = this.escapeHtml(this.config.messages.gatewayAmountNotice || 'This amount will be sent to the payment gateway.');
 
             $actions.before(
                 '' +
@@ -133,19 +137,19 @@
                     '<div id="wrs-validation-error" role="alert" style="display: none; margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #d63638; background: #fcf0f1; color: #8a2424;"></div>' +
                     '<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">' +
                         '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
-                            '<span style="color: #666;">Gross Refund:</span>' +
+                            '<span style="color: #666;">' + grossLabel + '</span>' +
                             '<span id="wrs_gross">$0.00</span>' +
                         '</div>' +
                         '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
-                            '<span style="color: #666;">Total Deductions:</span>' +
+                            '<span style="color: #666;">' + totalDeductionsLabel + '</span>' +
                             '<span id="wrs_total_deductions" style="color: #c00;">$0.00</span>' +
                         '</div>' +
                         '<div style="display: flex; justify-content: space-between;">' +
-                            '<strong style="color: #155724;">Net to Customer:</strong>' +
+                            '<strong style="color: #155724;">' + netToCustomerLabel + '</strong>' +
                             '<strong id="wrs_net" style="color: #155724; font-size: 16px;">$0.00</strong>' +
                         '</div>' +
                     '</div>' +
-                    '<div style="margin-top: 8px; font-size: 11px; color: #666;">This amount will be sent to the payment gateway.</div>' +
+                    '<div style="margin-top: 8px; font-size: 11px; color: #666;">' + gatewayAmountNotice + '</div>' +
                 '</div>'
             );
 
