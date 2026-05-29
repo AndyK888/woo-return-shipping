@@ -119,9 +119,11 @@ jobs:
             sleep 10
           done
 
-          DB_NAME="wp_test_${DB_NAME}_$(date +%s%N)"
-
           cd "$WP_ROOT"
+          mysql --host="$DB_HOST" --port="$DB_PORT" -u "$DB_ROOT_USER" -p"$DB_ROOT_PASSWORD" <<SQL
+            DROP DATABASE IF EXISTS \`$DB_NAME\`;
+            CREATE DATABASE \`$DB_NAME\`;
+          SQL
           wp core download --version=6.5 --allow-root
           wp config create \
             --dbname="$DB_NAME" \
@@ -130,7 +132,6 @@ jobs:
             --dbhost="$DB_HOST" \
             --skip-check \
             --allow-root
-          wp db create --allow-root
           wp core install \
             --url="$WP_URL" \
             --title="WRS CI" \
