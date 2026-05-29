@@ -56,6 +56,13 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Spec
 *   **Browser**: `npm run test:e2e`
 *   **Scope**: deduction validation, refund mutation, email deduction collection, and admin refund UI regression coverage
 
+## 🗂️ Gitea Releases
+
+*   **Source of truth**: All CI and release workflow status is managed in Gitea.
+*   **Release packaging**: `.gitea/workflows/release.yml` builds `woo-return-shipping-<version>.zip` for upload to WordPress.
+*   **Compatibility**: Current branch validates on PHP 8.0+, WordPress 6.0+, and WooCommerce 8.0+.
+*   **Release inputs**: `workflow_dispatch` supports manual release generation; tag pushes and release publish events also produce zip artifacts.
+
 ## 📝 Changelog
 
 ### 2.7.4
@@ -63,6 +70,7 @@ Deduct return shipping and retail box damage fees from WooCommerce refunds. Spec
 *   **Fix**: Added robust string matching checks for return shipping/box-damage label resolution.
 *   **Compatibility**: Strengthened precision handling for zero- and multi-decimal currency stores.
 *   **Metadata**: Bumped plugin metadata for WordPress/WooCommerce release readiness.
+*   **Docs**: Documented the Gitea-driven release workflow and zip artifact behavior used for WordPress uploads.
 
 ### 2.7.1
 *   **Test**: Added PHPUnit and Playwright regression coverage for refund deduction flows.

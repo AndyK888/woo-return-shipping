@@ -79,6 +79,16 @@ Yes. The plugin is fully compatible with WooCommerce High-Performance Order Stor
 
 Yes. Go to WooCommerce → Settings → Advanced → Return Shipping to customize both labels and email notes.
 
+== Gitea Releases ==
+
+This plugin uses Gitea as the authoritative workflow source for release and CI status.
+
+Release automation runs from `.gitea/workflows/release.yml` and uploads a WordPress-ready artifact:
+
+* Zip file naming: `woo-return-shipping-<version>.zip`
+* Triggered on release events, `v*` tag pushes, and manual workflow dispatch
+* The artifact is attached for download from the Gitea release page
+
 == Screenshots ==
 
 1. Refund modal with return shipping fee input
@@ -93,6 +103,7 @@ Yes. Go to WooCommerce → Settings → Advanced → Return Shipping to customiz
 * Preserve fee-label matching semantics while preventing empty-string search operations.
 * Improve refund admin precision handling for zero/variable decimal currency formatting.
 * Keep plugin version metadata synchronized across release files.
+* Document the Gitea release workflow and artifact output used for WordPress upload.
 
 = 2.7.3 =
 * Fix compatibility with PHP 8+ empty fee-label paths that could trigger fatal `ValueError` during refunds.
