@@ -42,6 +42,17 @@ function getActionMarkup(mode, grossAmountText) {
 function createServer() {
     let requestCount = 0;
     let lastRequestBody = '';
+    const safeDecode = (value, fallback = '') => {
+        if (value === null || value === undefined || value === '') {
+            return fallback;
+        }
+
+        try {
+            return decodeURIComponent(value);
+        } catch (error) {
+            return fallback || value;
+        }
+    };
 
     const server = http.createServer((req, res) => {
         const requestUrl = new URL(req.url, 'http://127.0.0.1');
@@ -57,10 +68,12 @@ function createServer() {
         const boxDamageDefaultFee = params.get('boxDamageDefaultFee') || '0.00';
 
         const actionLayout = params.get('actionLayout') || 'single';
-        const feeLabel = decodeURIComponent(params.get('feeLabel') || 'Return Shipping');
-        const boxDamageLabel = decodeURIComponent(params.get('boxDamageLabel') || 'Retail Box Damage');
+        const feeLabel = safeDecode(params.get('feeLabel'), 'Return Shipping');
+        const boxDamageLabel = safeDecode(params.get('boxDamageLabel'), 'Retail Box Damage');
         const amountForLabelParam = params.get('amountForLabel');
-        const amountForLabel = amountForLabelParam === null ? 'Amount for %s' : decodeURIComponent(amountForLabelParam);
+        const amountForLabel = amountForLabelParam === null || amountForLabelParam === ''
+            ? 'Amount for %s'
+            : safeDecode(amountForLabelParam, 'Amount for %s');
 
         const html = `<!DOCTYPE html>
 <html>
@@ -87,11 +100,11 @@ function createServer() {
       }
     };
     window.woocommerce_admin_meta_boxes = {
-      currency_format_symbol: '${decodeURIComponent(params.get('currencySymbol') || '$')}',
-      currency_format_decimal_sep: '${decodeURIComponent(params.get('currencyDecimal') || '.')}',
-      currency_format_thousand_sep: '${decodeURIComponent(params.get('currencyThousands') || ',')}',
+      currency_format_symbol: '${safeDecode(params.get('currencySymbol'), '$')}',
+      currency_format_decimal_sep: '${safeDecode(params.get('currencyDecimal'), '.')}',
+      currency_format_thousand_sep: '${safeDecode(params.get('currencyThousands'), ',')}',
       currency_format_num_decimals: ${precision},
-      currency_format: '${decodeURIComponent(params.get('currencyFormat') || '%s%v')}'
+      currency_format: '${safeDecode(params.get('currencyFormat'), '%s%v')}'
     };
   </script>
   <script src="/jquery.js"></script>

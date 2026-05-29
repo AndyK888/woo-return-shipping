@@ -77,6 +77,11 @@ jobs:
           php-version: '8.2'
           extensions: mysqli
 
+      - name: Install MySQL client
+        run: |
+          apt-get update
+          apt-get install -y default-mysql-client
+
       - name: Prepare WP CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o wp-cli.phar
