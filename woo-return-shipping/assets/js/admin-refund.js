@@ -401,17 +401,29 @@
             });
         },
 
+        _currencyFormatCache: null,
+
+        // ⚡ Bolt: Cache the parsed global currency configuration.
+        // What: Memoizes the resulting format object.
+        // Why: Prevents repeated global object lookups and property parsing on every keystroke during refunds.
+        // Impact: Reduces object allocation overhead.
         getCurrencyFormat: function () {
+            if (this._currencyFormatCache) {
+                return this._currencyFormatCache;
+            }
+
             var meta = window.woocommerce_admin_meta_boxes || {};
             var precision = parseInt(meta.currency_format_num_decimals || 2, 10);
 
-            return {
+            this._currencyFormatCache = {
                 symbol: meta.currency_format_symbol || '$',
                 decimal: meta.currency_format_decimal_sep || '.',
                 thousand: meta.currency_format_thousand_sep || ',',
                 precision: isNaN(precision) ? 2 : precision,
                 format: meta.currency_format || '%s%v'
             };
+
+            return this._currencyFormatCache;
         },
 
         formatMoney: function (amount) {
@@ -440,9 +452,15 @@
             return amount.toFixed(currency.precision);
         },
 
-        replaceAmountInLabel: function (label, formattedMoney, formattedNumber) {
-            if (!label) {
-                return label;
+        _regexCache: null,
+
+        // ⚡ Bolt: Cache dynamically compiled regular expressions for label replacement.
+        // What: Memoizes the RegExp instances instead of generating them inside the replaceAmountInLabel execution.
+        // Why: replaceAmountInLabel runs inside high-frequency event handlers (`input`, `change`). Re-compiling string-escaped Regex strings on every keystroke causes unnecessary CPU load and memory GC.
+        // Impact: Eliminates redundant Regex compilation; guarantees 0 new RegExp instances created per keystroke.
+        getAmountRegexes: function () {
+            if (this._regexCache) {
+                return this._regexCache;
             }
 
             var currency = this.getCurrencyFormat();
@@ -450,19 +468,33 @@
             var escapedDecimal = currency.decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             var escapedThousand = currency.thousand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             var amountPattern = '[0-9]+(?:' + escapedThousand + '[0-9]{3})*(?:' + escapedDecimal + '[0-9]{2})?';
-            var symbolBefore = new RegExp(escapedSymbol + '\\s*' + amountPattern);
-            var symbolAfter = new RegExp(amountPattern + '\\s*' + escapedSymbol);
 
-            if (symbolBefore.test(label)) {
-                return label.replace(symbolBefore, formattedMoney);
+            this._regexCache = {
+                symbolBefore: new RegExp(escapedSymbol + '\\s*' + amountPattern),
+                symbolAfter: new RegExp(amountPattern + '\\s*' + escapedSymbol),
+                amountRegex: new RegExp(amountPattern)
+            };
+
+            return this._regexCache;
+        },
+
+        replaceAmountInLabel: function (label, formattedMoney, formattedNumber) {
+            if (!label) {
+                return label;
             }
 
-            if (symbolAfter.test(label)) {
-                return label.replace(symbolAfter, formattedMoney);
+            var regexes = this.getAmountRegexes();
+
+            if (regexes.symbolBefore.test(label)) {
+                return label.replace(regexes.symbolBefore, formattedMoney);
             }
 
-            if (new RegExp(amountPattern).test(label)) {
-                return label.replace(new RegExp(amountPattern), formattedNumber);
+            if (regexes.symbolAfter.test(label)) {
+                return label.replace(regexes.symbolAfter, formattedMoney);
+            }
+
+            if (regexes.amountRegex.test(label)) {
+                return label.replace(regexes.amountRegex, formattedNumber);
             }
 
             return label;

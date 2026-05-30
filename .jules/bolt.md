@@ -1,0 +1,3 @@
+## 2024-05-30 - Memoizing Dynamic Regex in High-Frequency Handlers
+**Learning:** In frontend environments (especially older jQuery setups like WooCommerce admin panels), performing dynamic regular expression generation inside event handlers that fire frequently (e.g., `input`, `change`, `keyup`) can lead to a significant performance bottleneck due to continuous regex compilation and memory garbage collection pressure.
+**Action:** When working on components that update UI based on frequent user input, always audit helper functions (like formatting logic) to ensure that expensive objects (e.g., RegExp objects, parsed configuration objects from global contexts) are memoized/cached rather than re-instantiated on every call.
