@@ -1,0 +1,4 @@
+
+## 2024-05-23 - Dynamic Financial Totals Accessibility
+**Learning:** Dynamically injected UI components (like the refund fee panels injected by `admin-refund.js`) that recalculate and update financial totals based on user input are completely silent to screen readers unless specifically marked up. The same applies to dynamically displayed validation errors.
+**Action:** Always wrap containers that hold recalculating financial totals in `aria-live="polite"` and apply `role="alert"` to dynamically shown validation containers when implementing dynamic frontend updates for this application. Ensure that form inputs inside dynamically generated HTML have explicitly associated visible `<label for="...">` associations or visually hidden `.screen-reader-text` labels instead of overriding with redundant `aria-label` attributes.

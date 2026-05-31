@@ -100,28 +100,30 @@
                 '<div id="wrs-fee-container" style="margin: 15px 0; padding: 15px; background: #fffbeb; border: 2px solid #f0d866; border-radius: 6px;">' +
                     '<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">' +
                         '<div style="display: flex; justify-content: space-between; align-items: center;">' +
-                            '<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">' +
+                            '<label for="wrs_apply_fee" style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">' +
                                 '<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px;">' +
                                 this.escapeHtml(label) +
                             '</label>' +
                             '<div style="display: flex; align-items: center;">' +
+                                '<label for="wrs_return_shipping_fee" class="screen-reader-text">' + this.escapeHtml(label) + ' Amount</label>' +
                                 '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
                                 '<input type="number" id="wrs_return_shipping_fee" name="wrs_return_shipping_fee" value="' + fee.toFixed(2) + '" step="0.01" min="0" style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
                             '</div>' +
                         '</div>' +
                         '<div style="display: flex; justify-content: space-between; align-items: center;">' +
-                            '<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">' +
+                            '<label for="wrs_apply_box_damage_fee" style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">' +
                                 '<input type="checkbox" id="wrs_apply_box_damage_fee" name="wrs_apply_box_damage_fee" value="1" style="width: 18px; height: 18px;">' +
                                 this.escapeHtml(boxDamageLabel) +
                             '</label>' +
                             '<div style="display: flex; align-items: center;">' +
+                                '<label for="wrs_box_damage_fee" class="screen-reader-text">' + this.escapeHtml(boxDamageLabel) + ' Amount</label>' +
                                 '<span style="color: #c00; font-weight: bold; margin-right: 4px;">-$</span>' +
                                 '<input type="number" id="wrs_box_damage_fee" name="wrs_box_damage_fee" value="' + boxDamageFee.toFixed(2) + '" step="0.01" min="0" disabled style="width: 80px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
-                    '<div id="wrs-validation-error" style="display: none; margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #d63638; background: #fcf0f1; color: #8a2424;"></div>' +
-                    '<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">' +
+                    '<div id="wrs-validation-error" role="alert" style="display: none; margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #d63638; background: #fcf0f1; color: #8a2424;"></div>' +
+                    '<div aria-live="polite" style="border-top: 1px solid #e0d48d; padding-top: 10px;">' +
                         '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
                             '<span style="color: #666;">Gross Refund:</span>' +
                             '<span id="wrs_gross">$0.00</span>' +
