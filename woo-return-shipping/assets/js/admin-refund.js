@@ -401,17 +401,27 @@
             });
         },
 
+        _currencyFormat: null,
+
+        // ⚡ Bolt: Cache currency format to avoid repeated parsing of the global woocommerce_admin_meta_boxes object
+        // Impact: Reduces object creation and string parsing overhead in high-frequency validation checks
         getCurrencyFormat: function () {
+            if (this._currencyFormat) {
+                return this._currencyFormat;
+            }
+
             var meta = window.woocommerce_admin_meta_boxes || {};
             var precision = parseInt(meta.currency_format_num_decimals || 2, 10);
 
-            return {
+            this._currencyFormat = {
                 symbol: meta.currency_format_symbol || '$',
                 decimal: meta.currency_format_decimal_sep || '.',
                 thousand: meta.currency_format_thousand_sep || ',',
                 precision: isNaN(precision) ? 2 : precision,
                 format: meta.currency_format || '%s%v'
             };
+
+            return this._currencyFormat;
         },
 
         formatMoney: function (amount) {
@@ -440,9 +450,13 @@
             return amount.toFixed(currency.precision);
         },
 
-        replaceAmountInLabel: function (label, formattedMoney, formattedNumber) {
-            if (!label) {
-                return label;
+        _amountPatterns: null,
+
+        // ⚡ Bolt: Pre-compile and memoize RegExp objects for button label replacement
+        // Impact: Prevents compiling 3 complex regular expressions on every keystroke (input/change event)
+        getAmountPatterns: function () {
+            if (this._amountPatterns) {
+                return this._amountPatterns;
             }
 
             var currency = this.getCurrencyFormat();
@@ -450,19 +464,33 @@
             var escapedDecimal = currency.decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             var escapedThousand = currency.thousand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             var amountPattern = '[0-9]+(?:' + escapedThousand + '[0-9]{3})*(?:' + escapedDecimal + '[0-9]{2})?';
-            var symbolBefore = new RegExp(escapedSymbol + '\\s*' + amountPattern);
-            var symbolAfter = new RegExp(amountPattern + '\\s*' + escapedSymbol);
 
-            if (symbolBefore.test(label)) {
-                return label.replace(symbolBefore, formattedMoney);
+            this._amountPatterns = {
+                symbolBefore: new RegExp(escapedSymbol + '\\s*' + amountPattern),
+                symbolAfter: new RegExp(amountPattern + '\\s*' + escapedSymbol),
+                amountOnly: new RegExp(amountPattern)
+            };
+
+            return this._amountPatterns;
+        },
+
+        replaceAmountInLabel: function (label, formattedMoney, formattedNumber) {
+            if (!label) {
+                return label;
             }
 
-            if (symbolAfter.test(label)) {
-                return label.replace(symbolAfter, formattedMoney);
+            var patterns = this.getAmountPatterns();
+
+            if (patterns.symbolBefore.test(label)) {
+                return label.replace(patterns.symbolBefore, formattedMoney);
             }
 
-            if (new RegExp(amountPattern).test(label)) {
-                return label.replace(new RegExp(amountPattern), formattedNumber);
+            if (patterns.symbolAfter.test(label)) {
+                return label.replace(patterns.symbolAfter, formattedMoney);
+            }
+
+            if (patterns.amountOnly.test(label)) {
+                return label.replace(patterns.amountOnly, formattedNumber);
             }
 
             return label;
