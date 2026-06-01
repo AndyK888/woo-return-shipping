@@ -1,0 +1,3 @@
+## 2026-06-01 - Improve accessibility of refund deduction inputs and totals
+**Learning:** When injecting dynamic content into WooCommerce admin interfaces, using `aria-live="polite"` is essential for announcing recalculated financial totals. Furthermore, using explicitly associated visible `<label for="...">` or visually hidden `.screen-reader-text` labels is better than relying on `aria-label` attributes.
+**Action:** Always wrap dynamically updating financial total sections in `aria-live="polite"` regions and ensure all inputs inside dynamically generated HTML have explicit `for` associations with their labels.
