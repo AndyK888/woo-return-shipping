@@ -402,16 +402,25 @@
         },
 
         getCurrencyFormat: function () {
+            // ⚡ Bolt Performance Optimization:
+            // Memoize global object lookups to avoid unnecessary repeated evaluation
+            // Expected Impact: Reduces CPU cycles overhead on high-frequency UI input events
+            if (this._memoizedCurrency) {
+                return this._memoizedCurrency;
+            }
+
             var meta = window.woocommerce_admin_meta_boxes || {};
             var precision = parseInt(meta.currency_format_num_decimals || 2, 10);
 
-            return {
+            this._memoizedCurrency = {
                 symbol: meta.currency_format_symbol || '$',
                 decimal: meta.currency_format_decimal_sep || '.',
                 thousand: meta.currency_format_thousand_sep || ',',
                 precision: isNaN(precision) ? 2 : precision,
                 format: meta.currency_format || '%s%v'
             };
+
+            return this._memoizedCurrency;
         },
 
         formatMoney: function (amount) {
@@ -445,24 +454,36 @@
                 return label;
             }
 
-            var currency = this.getCurrencyFormat();
-            var escapedSymbol = currency.symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            var escapedDecimal = currency.decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            var escapedThousand = currency.thousand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            var amountPattern = '[0-9]+(?:' + escapedThousand + '[0-9]{3})*(?:' + escapedDecimal + '[0-9]{2})?';
-            var symbolBefore = new RegExp(escapedSymbol + '\\s*' + amountPattern);
-            var symbolAfter = new RegExp(amountPattern + '\\s*' + escapedSymbol);
+            // ⚡ Bolt Performance Optimization:
+            // Memoize dynamically constructed regular expressions. Re-compiling these inside high-frequency
+            // formatters causes unnecessary garbage collection pressure and CPU usage.
+            // Expected Impact: Eliminates repetitive RegEx compilation on button label updates.
+            if (!this._memoizedPatterns) {
+                var currency = this.getCurrencyFormat();
+                var escapedSymbol = currency.symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var escapedDecimal = currency.decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var escapedThousand = currency.thousand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var amountPattern = '[0-9]+(?:' + escapedThousand + '[0-9]{3})*(?:' + escapedDecimal + '[0-9]{2})?';
 
-            if (symbolBefore.test(label)) {
-                return label.replace(symbolBefore, formattedMoney);
+                this._memoizedPatterns = {
+                    symbolBefore: new RegExp(escapedSymbol + '\\s*' + amountPattern),
+                    symbolAfter: new RegExp(amountPattern + '\\s*' + escapedSymbol),
+                    amount: new RegExp(amountPattern)
+                };
             }
 
-            if (symbolAfter.test(label)) {
-                return label.replace(symbolAfter, formattedMoney);
+            var patterns = this._memoizedPatterns;
+
+            if (patterns.symbolBefore.test(label)) {
+                return label.replace(patterns.symbolBefore, formattedMoney);
             }
 
-            if (new RegExp(amountPattern).test(label)) {
-                return label.replace(new RegExp(amountPattern), formattedNumber);
+            if (patterns.symbolAfter.test(label)) {
+                return label.replace(patterns.symbolAfter, formattedMoney);
+            }
+
+            if (patterns.amount.test(label)) {
+                return label.replace(patterns.amount, formattedNumber);
             }
 
             return label;
