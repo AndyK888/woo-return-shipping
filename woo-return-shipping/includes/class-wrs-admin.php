@@ -107,6 +107,7 @@ class WRS_Admin {
 						</label>
 						<div style="display: flex; align-items: center;">
 							<span style="color: #c00; font-weight: bold; margin-right: 4px;">−$</span>
+							<label for="wrs_return_shipping_fee" class="screen-reader-text"><?php esc_html_e( 'Return Shipping Fee Amount', 'woo-return-shipping' ); ?></label>
 							<input type="number" 
 								id="wrs_return_shipping_fee" 
 								name="wrs_return_shipping_fee" 
@@ -116,7 +117,7 @@ class WRS_Admin {
 								style="width: 80px; text-align: right; padding: 5px;">
 						</div>
 					</div>
-					<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">
+					<div aria-live="polite" style="border-top: 1px solid #e0d48d; padding-top: 10px;">
 						<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
 							<span style="color: #666;">Gross Refund:</span>
 							<span id="wrs_gross">$0.00</span>

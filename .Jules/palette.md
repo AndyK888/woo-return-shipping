@@ -1,0 +1,3 @@
+## 2026-06-02 - Adding accessibility to Return Shipping Refund Form
+**Learning:** Found that dynamic injection of refund financial totals and input fields in admin refund forms often lacks proper ARIA announcements (`aria-live`, `role="alert"`) and explicit screen reader labels for numeric inputs when checkboxes already have labels.
+**Action:** Always wrap dynamically updated financial values in `aria-live="polite"`, add `role="alert"` to validation error messages, and ensure all inputs (like fee amounts) have an explicit `<label for="...">`, even if it's visually hidden via `.screen-reader-text`.
