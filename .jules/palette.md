@@ -1,0 +1,3 @@
+## 2024-06-03 - [Dynamic Financial Totals & Accessibility]
+**Learning:** In WooCommerce refund interfaces, dynamic recalculations of financial totals are often invisible to screen readers without ARIA live regions, and inline validation errors require explicit `role="alert"` attributes to be announced immediately.
+**Action:** When updating refund totals via JavaScript, always wrap the container in `aria-live="polite"` and apply `role="alert"` to dynamically shown validation containers. Ensure associated form inputs have explicit `<label for="...">` elements using `.screen-reader-text` where visual labels are handled by adjacent text nodes.
