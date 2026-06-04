@@ -1,0 +1,3 @@
+## 2025-06-04 - Accessible Form Validation in WooCommerce Admin
+**Learning:** When injecting dynamic HTML into the DOM via JavaScript (like in `admin-refund.js`), we must explicitly associate labels (either visible `for` attributes or visually hidden `.screen-reader-text` labels) instead of relying on structure or redundant `aria-label`s. Dynamically recalculating totals require `aria-live="polite"`, and dynamically shown error containers require `role="alert"` for immediate screen reader announcement.
+**Action:** When modifying dynamically generated DOM elements in the future, apply `role="alert"` for dynamically displayed validation messages and `aria-live="polite"` for recalculating regions. Use explicit `for` attributes instead of just relying on nesting.
