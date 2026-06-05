@@ -101,10 +101,11 @@ class WRS_Admin {
 			<td colspan="100%" style="padding: 15px !important;">
 				<div class="wrs-fee-container" style="border: 2px solid #f0d866; border-radius: 6px; padding: 15px; background: #fffbeb;">
 					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-						<label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
+						<label for="wrs_apply_fee" style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
 							<input type="checkbox" id="wrs_apply_fee" name="wrs_apply_fee" value="1" checked style="width: 18px; height: 18px;">
 							<?php echo esc_html( $fee_label ); ?>
 						</label>
+						<label for="wrs_return_shipping_fee" class="screen-reader-text"><?php esc_html_e( 'Return Shipping Fee Amount', 'woo-return-shipping' ); ?></label>
 						<div style="display: flex; align-items: center;">
 							<span style="color: #c00; font-weight: bold; margin-right: 4px;">−$</span>
 							<input type="number" 
@@ -116,7 +117,7 @@ class WRS_Admin {
 								style="width: 80px; text-align: right; padding: 5px;">
 						</div>
 					</div>
-					<div style="border-top: 1px solid #e0d48d; padding-top: 10px;">
+					<div aria-live="polite" style="border-top: 1px solid #e0d48d; padding-top: 10px;">
 						<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
 							<span style="color: #666;">Gross Refund:</span>
 							<span id="wrs_gross">$0.00</span>
